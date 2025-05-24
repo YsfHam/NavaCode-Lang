@@ -1,6 +1,7 @@
 use std::{iter::Peekable, str::Chars};
+use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum TokenKind {
     // Literals
     Number,
@@ -15,6 +16,9 @@ pub enum TokenKind {
     Star,
     Slash,
 
+    LeftParen,
+    RightParen,
+
     Identifier,
 
     Unknown,
@@ -22,10 +26,30 @@ pub enum TokenKind {
     EndOfFile,
 }
 
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            TokenKind::Number => "Number",
+            TokenKind::LetKeyword => "let",
+            TokenKind::BeKeyword => "be",
+            TokenKind::Plus => "+",
+            TokenKind::Minus => "-",
+            TokenKind::Star => "*",
+            TokenKind::Slash => "/",
+            TokenKind::Identifier => "Identifier",
+            TokenKind::Unknown => "Unknown",
+            TokenKind::EndOfFile => "EndOfFile",
+            TokenKind::LeftParen => "(",
+            TokenKind::RightParen => ")",
+        };
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenPosition {
-    line: usize,
-    column: usize,
+    pub line: usize,
+    pub column: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,6 +91,7 @@ impl<'a> Lexer<'a> {
         
        return 
         self.operator_token()
+        .or_else(|| self.symbol_token())
         .or_else(|| self.identifier_token())
         .or_else(|| self.unknown_token());
        
@@ -142,6 +167,33 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn symbol_token(&mut self) -> Option<Token> {
+        let start_pos = self.position.clone();
+
+        if let Some(&c) = self.peek() {
+
+            self.match_symbol(c).map(|kind| {
+                self.advance();
+                Token {
+                    kind,
+                    value: c.to_string(),
+                    position: start_pos,
+                }
+            })
+        }
+        else {
+            None
+        }
+    }
+
+    fn match_symbol(&self, c: char) -> Option<TokenKind> {
+        match c {
+            '(' => Some(TokenKind::LeftParen),
+            ')' => Some(TokenKind::RightParen),
+            _ => None,
+        }
+    }
+
     fn identifier_token(&mut self) -> Option<Token> {
         let mut identifier = String::new();
         let start_pos = self.position.clone();
@@ -152,7 +204,7 @@ impl<'a> Lexer<'a> {
         else {
             return None;
         }
-        while let Some(&c) = self.peek().filter(|c| c.is_alphanumeric()) {
+        while let Some(&c) = self.peek().filter(|c| c.is_alphanumeric() || **c == '_') {
             identifier.push(c);
             self.advance();
         }
@@ -208,7 +260,7 @@ impl<'a> Lexer<'a> {
         self.is_eof_encountered = true;
         Some(Token {
             kind: TokenKind::EndOfFile,
-            value: String::new(),
+            value: "EOF".to_string(),
             position: self.position.clone(),
         })
     }

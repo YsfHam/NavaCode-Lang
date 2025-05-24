@@ -50,7 +50,7 @@ let quot be x / y
 - [x] Variable declarations
 
 1. **Arithmetic and Logical Expressions**
-  - [ ] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)
+  - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)
   - [ ] Add logical operators (`and`, `or`, `not`)
   - [ ] Support comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
 

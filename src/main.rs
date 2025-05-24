@@ -1,13 +1,23 @@
-use navacodelang::lexer;
+use navacodelang::{ast::AstExplorer, lexer, parser, utils::AstDebugPrinter};
 
 fn main() {
     let input = r#"
-        let x be 1 +-2
+    let x be (2 + 3) * 5
     "#;
 
+    let mut parser = parser::Parser::new(lexer::Lexer::new(input));
+    println!("Starting parsing...");
+    let parsing_result = parser.parse();
 
-    let lexer = lexer::Lexer::new(input);
-    for token in lexer {
-        println!("{:?}", token);
+    match parsing_result {
+        Ok(ast) => {
+            println!("Parsing successful!");
+            let mut debug_printer = AstDebugPrinter::new();
+            debug_printer.explore_ast(&ast);
+        }
+        Err(diagnostic) => {
+            println!("Parsing failed with errors:");
+            println!("{}", diagnostic);
+        }
     }
 }
