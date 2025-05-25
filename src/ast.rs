@@ -39,10 +39,15 @@ pub trait AstExplorer {
             Statement::VariableDeclaration { name, value } => {
                 self.visit_variable_declaration(name, value);
             }
+            Statement::VariableAssignment { name, value } => {
+                self.visit_variable_assignement(name, value);
+            }
         }
     }
 
     fn visit_variable_declaration(&mut self, name: &Token, value: &Expression);
+    fn visit_variable_assignement(&mut self, name: &Token, value: &Expression);
+    
 
     fn visit_expression(&mut self, expression: &Expression) {
         match expression {

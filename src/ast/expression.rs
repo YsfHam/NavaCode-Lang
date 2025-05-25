@@ -78,8 +78,8 @@ impl TryFrom<crate::lexer::TokenKind> for BinaryOperator {
             crate::lexer::TokenKind::GreaterThan => Ok(BinaryOperator::GreaterThan),
             crate::lexer::TokenKind::LessThanOrEqual => Ok(BinaryOperator::LessThanOrEqual),
             crate::lexer::TokenKind::GreaterThanOrEqual => Ok(BinaryOperator::GreaterThanOrEqual),
-            crate::lexer::TokenKind::And => Ok(BinaryOperator::And),
-            crate::lexer::TokenKind::Or => Ok(BinaryOperator::Or),
+            crate::lexer::TokenKind::AndKeyword => Ok(BinaryOperator::And),
+            crate::lexer::TokenKind::OrKeyword => Ok(BinaryOperator::Or),
             _ => Err(()),
         }
     }
@@ -96,7 +96,7 @@ impl TryFrom<crate::lexer::TokenKind> for UnaryOperator {
     fn try_from(kind: crate::lexer::TokenKind) -> Result<Self, Self::Error> {
         match kind {
             crate::lexer::TokenKind::Minus => Ok(UnaryOperator::Negate),
-            crate::lexer::TokenKind::Not | crate::lexer::TokenKind::Bang => Ok(UnaryOperator::Not),
+            crate::lexer::TokenKind::NotKeyword | crate::lexer::TokenKind::Bang => Ok(UnaryOperator::Not),
             _ => Err(()),
         }
     }

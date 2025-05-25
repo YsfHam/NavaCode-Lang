@@ -65,9 +65,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             let token = self.peek();
             match token.kind {
                 TokenKind::EndOfFile |
-                TokenKind::LetKeyword 
+                TokenKind::LetKeyword |
+                TokenKind::SetKeyword
                 => {
-                    // We can recover by skipping to the next statement
                     break;
                 }
                 _ => {
@@ -89,6 +89,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
         match next_token_kind {
             TokenKind::LetKeyword => Ok(Some(self.parse_variable_declaration()?)),
+            TokenKind::SetKeyword => Ok(Some(self.parse_variable_assignement()?)),
             _ => {
                 return Err(diagnostic::Error::UnexpectedToken {
                     expected: vec![TokenKind::LetKeyword],
@@ -105,6 +106,18 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let value = self.parse_expression()?;
 
         Ok(Statement::VariableDeclaration {
+            name: name_token,
+            value,
+        })
+    }
+
+    fn parse_variable_assignement(&mut self) -> Result<Statement, diagnostic::Error> {
+        self.expect(&[TokenKind::SetKeyword])?;
+        let name_token = self.expect(&[TokenKind::Identifier])?;
+        self.expect(&[TokenKind::ToKeyword])?;
+        let value = self.parse_expression()?;
+
+        Ok(Statement::VariableAssignment {
             name: name_token,
             value,
         })

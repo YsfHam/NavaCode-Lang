@@ -37,6 +37,13 @@ let x be 10
 let y be 20
 ```
 
+### Variable Assignment
+```nava
+let x be 10
+let y be 20
+set x to x + y
+```
+
 ### Integer Arithmetic
 ```nava
 let sum be x + y
@@ -123,6 +130,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 
 ### MVP Features (Current Progress)
 - [x] Variable declarations
+- [ ] Variable assignment
 
 1. **Arithmetic and Logical Expressions**
   - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)

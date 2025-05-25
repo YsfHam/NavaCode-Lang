@@ -8,9 +8,11 @@ pub enum TokenKind {
     // Keywords
     LetKeyword,
     BeKeyword,
-    And,
-    Or,
-    Not,
+    AndKeyword,
+    OrKeyword,
+    NotKeyword,
+    SetKeyword,
+    ToKeyword,
 
     // Operators
     Plus,
@@ -41,8 +43,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Number => "Number",
             TokenKind::LetKeyword => "let",
             TokenKind::BeKeyword => "be",
-            TokenKind::And => "and",
-            TokenKind::Or => "or",
+            TokenKind::AndKeyword => "and",
+            TokenKind::OrKeyword => "or",
             TokenKind::Plus => "+",
             TokenKind::Minus => "-",
             TokenKind::Star => "*",
@@ -58,8 +60,10 @@ impl fmt::Display for TokenKind {
             TokenKind::Identifier => "Identifier",
             TokenKind::Unknown => "Unknown",
             TokenKind::EndOfFile => "EndOfFile",
-            TokenKind::Not => "not",
+            TokenKind::NotKeyword => "not",
             TokenKind::Bang => "!",
+            TokenKind::SetKeyword => "set",
+            TokenKind::ToKeyword => "to",
         };
         write!(f, "{s}")
     }
@@ -250,7 +254,7 @@ impl<'a> Lexer<'a> {
             identifier.push(self.advance());
         }
         Some(Token {
-            kind: self.match_identifier_with_keyword(&identifier),
+            kind: self.match_identifier_or_keyword(&identifier),
             value: identifier,
             position: start_pos,
         })
@@ -310,13 +314,15 @@ impl<'a> Lexer<'a> {
     }
 
     // Helper to match identifier or keyword
-    fn match_identifier_with_keyword(&self, identifier: &str) -> TokenKind {
+    fn match_identifier_or_keyword(&self, identifier: &str) -> TokenKind {
         match identifier {
             "let" => TokenKind::LetKeyword,
             "be" => TokenKind::BeKeyword,
-            "and" => TokenKind::And,
-            "or" => TokenKind::Or,
-            "not" => TokenKind::Not,
+            "and" => TokenKind::AndKeyword,
+            "or" => TokenKind::OrKeyword,
+            "not" => TokenKind::NotKeyword,
+            "set" => TokenKind::SetKeyword,
+            "to" => TokenKind::ToKeyword,
             _ => TokenKind::Identifier,
         }
     }

@@ -4,6 +4,7 @@ fn main() {
 
     let input = r#"
     let x be --(1 + 2)
+    set x to 5
     "#;
     println!("Starting lexer...");
     let mut parser = parser::Parser::new(lexer::Lexer::new(input));

@@ -45,4 +45,11 @@ impl AstExplorer for AstDebugPrinter {
         self.visit_expression(operand);
         self.indent_level -= 1;
     }
+    
+    fn visit_variable_assignement(&mut self, name: &crate::lexer::Token, value: &crate::ast::expression::Expression) {
+        println!("{}Variable Assignment: {}", "  ".repeat(self.indent_level), name.value);
+        self.indent_level += 1;
+        self.visit_expression(value);
+        self.indent_level -= 1;
+    }
 }

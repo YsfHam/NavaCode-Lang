@@ -7,4 +7,9 @@ pub enum Statement {
         name: Token,
         value: Expression,
     },
+
+    VariableAssignment {
+        name: Token,
+        value: Expression,
+    },
 }

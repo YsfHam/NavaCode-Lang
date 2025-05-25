@@ -96,8 +96,8 @@ fn test_lexer_mixed() {
 fn test_lexer_logical_operators() {
     let tokens = lex_all("and or");
     assert_eq!(tokens, vec![
-        (TokenKind::And, "and".to_string()),
-        (TokenKind::Or, "or".to_string()),
+        (TokenKind::AndKeyword, "and".to_string()),
+        (TokenKind::OrKeyword, "or".to_string()),
         (TokenKind::EndOfFile, "EOF".to_string()),
     ]);
 }
@@ -159,6 +159,7 @@ fn test_parser_comparison_expressions() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "a");
     match value {
@@ -174,6 +175,7 @@ fn test_parser_comparison_expressions() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "b");
     match value {
@@ -189,6 +191,7 @@ fn test_parser_comparison_expressions() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "c");
     match value {
@@ -204,6 +207,7 @@ fn test_parser_comparison_expressions() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "d");
     match value {
@@ -222,6 +226,7 @@ fn test_parser_logical_operators() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "a");
     match value {
@@ -237,6 +242,7 @@ fn test_parser_logical_operators() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "b");
     match value {
@@ -257,6 +263,7 @@ fn test_parser_unary_operators() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "x");
     match value {
@@ -272,6 +279,7 @@ fn test_parser_unary_operators() {
     let stmt = &ast.statements()[0];
     let (_, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     match value {
         Expression::UnaryOperation { operator, operand } => {
@@ -292,6 +300,7 @@ fn test_parser_unary_operators() {
     let stmt = &ast.statements()[0];
     let (_, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     match value {
         Expression::UnaryOperation { operator, operand } => {
@@ -319,6 +328,7 @@ fn test_parser_grouped_and_precedence() {
     let stmt = &ast.statements()[0];
     let (_, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     match value {
         Expression::BinaryOperation { left, operator, right } => {
@@ -344,6 +354,7 @@ fn test_parser_grouped_and_precedence() {
     let stmt = &ast.statements()[0];
     let (_, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     match value {
         Expression::BinaryOperation { left, operator, right } => {
@@ -372,6 +383,7 @@ fn test_parser_variable_and_identifier() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
 
     let expected_value = Expression::Variable(Token {
@@ -392,6 +404,7 @@ fn test_parser_number_literal() {
     let stmt = &ast.statements()[0];
     let (name, value) = match stmt {
         Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
     };
     assert_eq!(name.value, "x");
     assert_eq!(*value, Expression::Number(123));
@@ -412,4 +425,40 @@ fn test_parser_error_cases() {
     let result = parse_program("let be 5");
     assert!(result.is_err());
 }
+
+#[test]
+fn test_parser_variable_assignment() {
+    let ast = parse_program("let x be 10\nset x to 20").unwrap();
+    assert_eq!(ast.statements().len(), 2);
+
+    // Check variable declaration
+    let stmt = &ast.statements()[0];
+    let (name, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+        _ => panic!("Expected variable declaration"),
+    };
+    assert_eq!(name.value, "x");
+    assert_eq!(*value, Expression::Number(10));
+
+    // Check variable assignment
+    let stmt = &ast.statements()[1];
+    let (name, value) = match stmt {
+        Statement::VariableAssignment { name, value } => (name, value),
+        _ => panic!("Expected variable assignment"),
+    };
+    assert_eq!(name.value, "x");
+    assert_eq!(*value, Expression::Number(20));
+}
+
+// Commenting out the test for `let mutable` as it is not yet implemented in the language.
+// #[test]
+// fn test_parser_mutable_variable() {
+//     let ast = parse_program("let mutable x be 10\nset x to x + 1").unwrap();
+//     assert_eq!(ast.statements().len(), 2);
+// 
+//     // Check mutable variable declaration
+//     let stmt = &ast.statements()[0];
+//     let (name, value) = match stmt {
+//         Statement::VariableDeclaration { name, value } => (name, value),
+//         _ => panic!("Expected variable declaration"),
 
