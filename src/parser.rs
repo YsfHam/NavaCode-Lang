@@ -115,7 +115,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     }
 
     fn parse_expression_with_precedence(&mut self, min_precedence: u8) -> Result<Expression, diagnostic::Error> {
-        let mut left = self.parse_primary_expression()?;
+        let mut left = self.parse_unary_expression()?;
 
         while let Ok(op) = BinaryOperator::try_from(self.peek().kind) {
 
@@ -140,18 +140,36 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(left)
     }
 
+    fn parse_unary_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+        
+        if let Ok(op) = UnaryOperator::try_from(self.peek().kind) {
+            self.advance(); // consume the operator
+            let operand = self.parse_unary_expression()?;
+            return Ok(Expression::UnaryOperation {
+                operator: op,
+                operand: Box::new(operand),
+            });
+        }
+
+        self.parse_primary_expression()
+    }
+
     fn parse_primary_expression(&mut self) -> Result<Expression, diagnostic::Error> {
 
         let next_token = self.peek();
         
         if next_token.kind == TokenKind::LeftParen {
-            self.advance(); // consume '('
-            let expr = self.parse_expression()?;
-            self.expect(&[TokenKind::RightParen])?; // expect ')'
-            return Ok(Expression::Grouped(Box::new(expr)));
+            return self.parse_grouped_expression();
         }
 
-        self.parse_unary_expression()
+        self.parse_literal_expression()
+    }
+
+    fn parse_grouped_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+        self.expect(&[TokenKind::LeftParen])?;
+        let expr = self.parse_expression()?;
+        self.expect(&[TokenKind::RightParen])?;
+        Ok(Expression::Grouped(Box::new(expr)))
     }
 
     fn parse_literal_expression(&mut self) -> Result<Expression, diagnostic::Error> {
@@ -175,17 +193,5 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
     }
 
-    fn parse_unary_expression(&mut self) -> Result<Expression, diagnostic::Error> {
-        
-        if let Ok(op) = UnaryOperator::try_from(self.peek().kind) {
-            self.advance(); // consume the operator
-            let operand = self.parse_unary_expression()?;
-            return Ok(Expression::UnaryOperation {
-                operator: op,
-                operand: Box::new(operand),
-            });
-        }
-
-        self.parse_literal_expression()
-    }
+    
 }

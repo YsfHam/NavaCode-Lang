@@ -87,6 +87,7 @@ impl TryFrom<crate::lexer::TokenKind> for BinaryOperator {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOperator {
     Negate,
+    Not,
 }
 
 impl TryFrom<crate::lexer::TokenKind> for UnaryOperator {
@@ -95,6 +96,7 @@ impl TryFrom<crate::lexer::TokenKind> for UnaryOperator {
     fn try_from(kind: crate::lexer::TokenKind) -> Result<Self, Self::Error> {
         match kind {
             crate::lexer::TokenKind::Minus => Ok(UnaryOperator::Negate),
+            crate::lexer::TokenKind::Not | crate::lexer::TokenKind::Bang => Ok(UnaryOperator::Not),
             _ => Err(()),
         }
     }

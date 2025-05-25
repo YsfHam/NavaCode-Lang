@@ -9,7 +9,7 @@ NavaCode Lang is a simple, educational programming language and compiler project
 - Practice making software architecture decisions
 - Build something fun and useful for learning
 
-## Language Design (Draft)
+## Language Design
 - **Syntax:** Simple and readable, inspired by languages like Python, JavaScript, C, and some functional languages.
 - **Features:**
   - Basic data types (integers, floats, strings, booleans)
@@ -28,7 +28,8 @@ NavaCode Lang is a simple, educational programming language and compiler project
 - **(Planned) Compiler:** Compiles to C. Adding bytecode and IR later
 
 ## Syntax Overview
-This section describes the syntax of NavaCode Lang with examples:
+
+NavaCode Lang is designed to be simple and expressive. Here are examples of all currently supported syntax features:
 
 ### Variable Declaration
 ```nava
@@ -43,6 +44,80 @@ let diff be x - y
 let prod be x * y
 let quot be x / y
 ```
+
+### Logical Operators
+```nava
+let a be 1 and 0
+let b be 1 or 0
+```
+
+### Comparison Operators
+```nava
+let eq be x == y
+let neq be x != y
+let lt be x < y
+let gt be x > y
+let le be x <= y
+let ge be x >= y
+```
+
+### Unary Operators
+```nava
+let neg be -x
+let notx be not x
+let nested be - -x
+let group be - (x + 1)
+```
+
+### Grouped Expressions and Precedence
+```nava
+let a be (1 + 2) * 3
+let b be 4 / (2 - 1)
+let c be not (x and y)
+```
+
+---
+
+## Technical Overview
+
+### Parser Components
+- **Lexer:** Converts source code into a stream of tokens (numbers, identifiers, operators, keywords, etc.).
+- **Parser:** Uses recursive descent and operator precedence parsing to build an Abstract Syntax Tree (AST) from the token stream.
+- **AST:** Represents the structure of the program (variable declarations, expressions, etc.).
+- **Error Handling:** Robust error reporting and recovery for invalid syntax.
+
+### Grammar (EBNF)
+```
+program         ::= { statement }
+
+statement       ::= variable_declaration
+
+variable_declaration ::= "let" identifier "be" expression
+
+expression      ::= unary_expression [ binary_operator expression ]
+
+unary_expression ::= unary_operator unary_expression
+                  | primary_expression
+
+primary_expression ::= grouped_expression
+                    | literal_expression
+
+grouped_expression ::= "(" expression ")"
+
+literal_expression ::= number
+                    | identifier
+
+unary_operator   ::= "-" | "not"
+binary_operator  ::= "+" | "-" | "*" | "/" | "and" | "or" | "==" | "!=" | "<" | ">" | "<=" | ">="
+identifier       ::= [a-zA-Z_][a-zA-Z0-9_]*
+number           ::= [0-9]+(\.[0-9]+)?
+```
+
+- **Operator precedence** is handled so that arithmetic, logical, and comparison operators work as expected.
+- **Unary operators** can be chained and can operate on grouped expressions.
+- **Grouped expressions** (parentheses) can override precedence.
+
+---
 
 ## Roadmap
 
@@ -80,7 +155,6 @@ let quot be x / y
 - [ ] Lambda expressions and closures
 - [ ] Compile to C or custom bytecode
 - [ ] Expand the standard library
-
 
 ## License
 MIT License

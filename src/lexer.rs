@@ -10,6 +10,7 @@ pub enum TokenKind {
     BeKeyword,
     And,
     Or,
+    Not,
 
     // Operators
     Plus,
@@ -22,6 +23,7 @@ pub enum TokenKind {
     GreaterThan,
     LessThanOrEqual,
     GreaterThanOrEqual,
+    Bang,
 
     LeftParen,
     RightParen,
@@ -56,6 +58,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Identifier => "Identifier",
             TokenKind::Unknown => "Unknown",
             TokenKind::EndOfFile => "EndOfFile",
+            TokenKind::Not => "not",
+            TokenKind::Bang => "!",
         };
         write!(f, "{s}")
     }
@@ -75,7 +79,7 @@ pub struct Token {
 }
 
 
-static OPERATORS: [(&str, TokenKind); 10] = [
+static OPERATORS: [(&str, TokenKind); 11] = [
     ("+", TokenKind::Plus), 
     ("-", TokenKind::Minus), 
     ("*", TokenKind::Star), 
@@ -86,6 +90,7 @@ static OPERATORS: [(&str, TokenKind); 10] = [
     (">", TokenKind::GreaterThan),
     ("<=", TokenKind::LessThanOrEqual),
     (">=", TokenKind::GreaterThanOrEqual),
+    ("!", TokenKind::Bang),
 ];
 
 pub struct Lexer<'a> {
@@ -311,6 +316,7 @@ impl<'a> Lexer<'a> {
             "be" => TokenKind::BeKeyword,
             "and" => TokenKind::And,
             "or" => TokenKind::Or,
+            "not" => TokenKind::Not,
             _ => TokenKind::Identifier,
         }
     }

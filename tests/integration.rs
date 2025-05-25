@@ -1,4 +1,4 @@
-use navacodelang::lexer::{Lexer, TokenKind};
+use navacodelang::lexer::{Lexer, Token, TokenKind, TokenPosition};
 use navacodelang::parser::Parser;
 use navacodelang::ast::{Ast, statement::Statement, expression::Expression};
 use navacodelang::ast::expression::BinaryOperator;
@@ -247,5 +247,169 @@ fn test_parser_logical_operators() {
         }
         _ => panic!("Expected binary operation"),
     }
+}
+
+#[test]
+fn test_parser_unary_operators() {
+    use navacodelang::ast::expression::UnaryOperator;
+    // Unary minus
+    let ast = parse_program("let x be -5").unwrap();
+    let stmt = &ast.statements()[0];
+    let (name, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    assert_eq!(name.value, "x");
+    match value {
+        Expression::UnaryOperation { operator, operand } => {
+            assert_eq!(*operator, UnaryOperator::Negate);
+            assert_eq!(**operand, Expression::Number(5));
+        }
+        _ => panic!("Expected unary operation"),
+    }
+
+    // Nested unary
+    let ast = parse_program("let a be - -5").unwrap();
+    let stmt = &ast.statements()[0];
+    let (_, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    match value {
+        Expression::UnaryOperation { operator, operand } => {
+            assert_eq!(*operator, UnaryOperator::Negate);
+            match **operand {
+                Expression::UnaryOperation { operator: ref op2, operand: ref opnd2 } => {
+                    assert_eq!(*op2, UnaryOperator::Negate);
+                    assert_eq!(**opnd2, Expression::Number(5));
+                }
+                _ => panic!("Expected nested unary operation"),
+            }
+        }
+        _ => panic!("Expected unary operation"),
+    }
+
+    // Unary operator with grouped expression
+    let ast = parse_program("let b be - (2 + 3)").unwrap();
+    let stmt = &ast.statements()[0];
+    let (_, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    match value {
+        Expression::UnaryOperation { operator, operand } => {
+            assert_eq!(*operator, UnaryOperator::Negate);
+            match **operand {
+                Expression::Grouped(ref inner) => match **inner {
+                    Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                        assert_eq!(**left, Expression::Number(2));
+                        assert_eq!(*operator, BinaryOperator::Add);
+                        assert_eq!(**right, Expression::Number(3));
+                    }
+                    _ => panic!("Expected binary operation inside group"),
+                },
+                _ => panic!("Expected grouped expression as operand"),
+            }
+        }
+        _ => panic!("Expected unary operation"),
+    }
+}
+
+#[test]
+fn test_parser_grouped_and_precedence() {
+    // Grouped expression changes precedence
+    let ast = parse_program("let x be (1 + 2) * 3").unwrap();
+    let stmt = &ast.statements()[0];
+    let (_, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    match value {
+        Expression::BinaryOperation { left, operator, right } => {
+            assert_eq!(*operator, BinaryOperator::Multiply);
+            match **left {
+                Expression::Grouped(ref inner) => match **inner {
+                    Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                        assert_eq!(**left, Expression::Number(1));
+                        assert_eq!(*operator, BinaryOperator::Add);
+                        assert_eq!(**right, Expression::Number(2));
+                    }
+                    _ => panic!("Expected binary operation inside group"),
+                },
+                _ => panic!("Expected grouped expression as left operand"),
+            }
+            assert_eq!(**right, Expression::Number(3));
+        }
+        _ => panic!("Expected binary operation"),
+    }
+
+    // Grouped expression as right operand
+    let ast = parse_program("let y be 4 / (2 - 1)").unwrap();
+    let stmt = &ast.statements()[0];
+    let (_, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    match value {
+        Expression::BinaryOperation { left, operator, right } => {
+            assert_eq!(*operator, BinaryOperator::Divide);
+            assert_eq!(**left, Expression::Number(4));
+            match **right {
+                Expression::Grouped(ref inner) => match **inner {
+                    Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                        assert_eq!(**left, Expression::Number(2));
+                        assert_eq!(*operator, BinaryOperator::Subtract);
+                        assert_eq!(**right, Expression::Number(1));
+                    }
+                    _ => panic!("Expected binary operation inside group"),
+                },
+                _ => panic!("Expected grouped expression as right operand"),
+            }
+        }
+        _ => panic!("Expected binary operation"),
+    }
+}
+
+#[test]
+fn test_parser_variable_and_identifier() {
+    // Variable as right operand
+    let ast = parse_program("let x be y").unwrap();
+    let stmt = &ast.statements()[0];
+    let (name, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+
+    let expected_value = Expression::Variable(Token {
+        kind: TokenKind::Identifier,
+        value: "y".to_string(),
+        position: TokenPosition {
+            line: 1,
+            column: 10,
+        },
+    });
+    assert_eq!(name.value, "x");
+    assert_eq!(*value, expected_value);
+}
+
+#[test]
+fn test_parser_number_literal() {
+    let ast = parse_program("let x be 123").unwrap();
+    let stmt = &ast.statements()[0];
+    let (name, value) = match stmt {
+        Statement::VariableDeclaration { name, value } => (name, value),
+    };
+    assert_eq!(name.value, "x");
+    assert_eq!(*value, Expression::Number(123));
+}
+
+#[test]
+fn test_parser_error_cases() {
+    // Missing right operand
+    let result = parse_program("let x be 1 +");
+    assert!(result.is_err());
+    // Unexpected token
+    let result = parse_program("let x be @");
+    assert!(result.is_err());
+    // Unmatched parenthesis
+    let result = parse_program("let x be (1 + 2");
+    assert!(result.is_err());
+    // Invalid variable declaration
+    let result = parse_program("let be 5");
+    assert!(result.is_err());
 }
 

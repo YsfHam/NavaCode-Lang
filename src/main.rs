@@ -3,9 +3,9 @@ use navacodelang::{ast::AstExplorer, lexer, parser, utils::AstDebugPrinter};
 fn main() {
 
     let input = r#"
-    let x be 1 == 2 and 3 + 4
+    let x be --(1 + 2)
     "#;
-
+    println!("Starting lexer...");
     let mut parser = parser::Parser::new(lexer::Lexer::new(input));
     println!("Starting parsing...");
     let parsing_result = parser.parse();
