@@ -19,6 +19,11 @@ impl Ast {
     pub fn add_statement(&mut self, statement: Statement) {
         self.statements.push(statement);
     }
+
+    // Add public accessors for Ast and Statement for testing
+    pub fn statements(&self) -> &Vec<Statement> {
+        &self.statements
+    }
 }
 
 pub trait AstExplorer {

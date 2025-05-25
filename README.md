@@ -51,8 +51,8 @@ let quot be x / y
 
 1. **Arithmetic and Logical Expressions**
   - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)
-  - [ ] Add logical operators (`and`, `or`, `not`)
-  - [ ] Support comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
+  - [x] Add logical operators (`and`, `or`, `not`)
+  - [x] Support comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
 
 2. **Control Flow**
   - [ ] Add `if` and `else` statements

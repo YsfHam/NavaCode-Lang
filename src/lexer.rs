@@ -1,4 +1,3 @@
-use std::{iter::Peekable, str::Chars};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -9,12 +8,20 @@ pub enum TokenKind {
     // Keywords
     LetKeyword,
     BeKeyword,
+    And,
+    Or,
 
     // Operators
     Plus,
     Minus,
     Star,
     Slash,
+    EqualEqual,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqual,
+    GreaterThanOrEqual,
 
     LeftParen,
     RightParen,
@@ -32,15 +39,23 @@ impl fmt::Display for TokenKind {
             TokenKind::Number => "Number",
             TokenKind::LetKeyword => "let",
             TokenKind::BeKeyword => "be",
+            TokenKind::And => "and",
+            TokenKind::Or => "or",
             TokenKind::Plus => "+",
             TokenKind::Minus => "-",
             TokenKind::Star => "*",
             TokenKind::Slash => "/",
+            TokenKind::EqualEqual => "==",
+            TokenKind::NotEqual => "!=",
+            TokenKind::LessThan => "<",
+            TokenKind::GreaterThan => ">",
+            TokenKind::LessThanOrEqual => "<=",
+            TokenKind::GreaterThanOrEqual => ">=",
+            TokenKind::LeftParen => "(",
+            TokenKind::RightParen => ")",
             TokenKind::Identifier => "Identifier",
             TokenKind::Unknown => "Unknown",
             TokenKind::EndOfFile => "EndOfFile",
-            TokenKind::LeftParen => "(",
-            TokenKind::RightParen => ")",
         };
         write!(f, "{s}")
     }
@@ -59,8 +74,22 @@ pub struct Token {
     pub position: TokenPosition,
 }
 
+
+static OPERATORS: [(&str, TokenKind); 10] = [
+    ("+", TokenKind::Plus), 
+    ("-", TokenKind::Minus), 
+    ("*", TokenKind::Star), 
+    ("/", TokenKind::Slash),
+    ("==", TokenKind::EqualEqual),
+    ("!=", TokenKind::NotEqual),
+    ("<", TokenKind::LessThan),
+    (">", TokenKind::GreaterThan),
+    ("<=", TokenKind::LessThanOrEqual),
+    (">=", TokenKind::GreaterThanOrEqual),
+];
+
 pub struct Lexer<'a> {
-    input: Peekable<Chars<'a>>,
+    input: LexerInputBuffer<'a>,
     position: TokenPosition,
     is_eof_encountered: bool,
 }
@@ -68,33 +97,26 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         Lexer {
-            input: input.chars().peekable(),
+            input: LexerInputBuffer::new(input),
             position: TokenPosition { line: 1, column: 1 },
             is_eof_encountered: false,
         }
     }
 
     pub fn next_token(&mut self) -> Option<Token> {
-        // Skip whitespace and update position
         self.handle_whitespaces();
-
         let next_char_opt = self.peek();
-
         if next_char_opt.is_none() {
             return self.end_of_file_token();
         }
-        let next_char = *next_char_opt.unwrap();
-
+        let next_char = next_char_opt.unwrap();
         if next_char.is_ascii_digit() {
             return Some(self.number_token());
         }
-        
-       return 
-        self.operator_token()
-        .or_else(|| self.symbol_token())
-        .or_else(|| self.identifier_token())
-        .or_else(|| self.unknown_token());
-       
+        return self.operator_token()
+            .or_else(|| self.symbol_token())
+            .or_else(|| self.identifier_token())
+            .or_else(|| self.unknown_token());
     }
 
     fn advance(&mut self) -> char {
@@ -108,12 +130,34 @@ impl<'a> Lexer<'a> {
         c
     }
 
-    fn peek(&mut self) -> Option<&char> {
+    fn unadvance(&mut self, count: usize) {
+
+        if count == 0 {
+            return; // No need to rewind if count is zero
+        }
+        // Rewind the input buffer
+        self.input.rewind(count);
+
+        // Recompute line and column by scanning from the start up to the current position
+        let mut line = 1;
+        let mut col = 1;
+        for c in self.input.start().chars() {
+            if c == '\n' {
+            line += 1;
+            col = 1;
+            } else {
+            col += 1;
+            }
+        }
+        self.position.line = line;
+        self.position.column = col;
+        }
+
+    fn peek(&mut self) -> Option<char> {
         self.input.peek()
     }
 
     fn handle_whitespaces(&mut self) {
-
         while self.peek().is_some_and(|c| c.is_whitespace()) {
             self.advance();
         }
@@ -122,9 +166,8 @@ impl<'a> Lexer<'a> {
     fn number_token(&mut self) -> Token {
         let mut number = String::new();
         let start_pos = self.position.clone();
-        while let Some(&c) = self.peek().filter(|c| c.is_ascii_digit()) {
-            number.push(c);
-            self.advance();
+        while self.peek().is_some_and(|c| c.is_ascii_digit()) {
+            number.push(self.advance());
         }
         Token {
             kind: TokenKind::Number,
@@ -135,43 +178,48 @@ impl<'a> Lexer<'a> {
 
     fn operator_token(&mut self) -> Option<Token> {
         let start_pos = self.position.clone();
-        let mut operator = String::new();
-        let mut last_operator_kind= None;
-        while let Some(&c) = self.peek() {
-            operator.push(c);
-            if let Some(operator_kind) = self.match_operator(&operator) {
-                last_operator_kind = Some(operator_kind);
-                self.advance();
+        let mut op = String::new();
+        let mut last_valid_kind = None;
+        let mut last_valid_len = 0;
+        let mut chars_consumed = 0;
+        while let Some(c) = self.peek() {
+            op.push(c);
+            if let Some(kind) = self.match_operator(&op) {
+                last_valid_kind = Some(kind);
+                last_valid_len = op.len();
             }
+            if OPERATORS.iter().any(|(s, _)| s.starts_with(&op)) {
+                self.advance();
+                chars_consumed += 1;
+            } 
             else {
-                operator.pop();
                 break;
             }
         }
-
-        last_operator_kind
-        .map(|op_kind| Token { 
-            kind: op_kind,
-            value: operator,
-            position: start_pos 
-        })
+        if let Some(kind) = last_valid_kind {
+            if last_valid_len < chars_consumed {
+                self.unadvance(chars_consumed - last_valid_len);
+            }
+            let value = op[..last_valid_len].to_string();
+            Some(Token {
+                kind,
+                value,
+                position: start_pos,
+            })
+        } 
+        else {
+            self.unadvance(chars_consumed);
+            None
+        }
     }
 
     fn match_operator(&self, operator: &str) -> Option<TokenKind> {
-        match operator {
-            "+" => Some(TokenKind::Plus),
-            "-" => Some(TokenKind::Minus),
-            "*" => Some(TokenKind::Star),
-            "/" => Some(TokenKind::Slash),
-            _ => None
-        }
+        OPERATORS.iter().find(|(op_str, _)| *op_str == operator).map(|(_, kind)| *kind)
     }
 
     fn symbol_token(&mut self) -> Option<Token> {
         let start_pos = self.position.clone();
-
-        if let Some(&c) = self.peek() {
-
+        if let Some(c) = self.peek() {
             self.match_symbol(c).map(|kind| {
                 self.advance();
                 Token {
@@ -180,36 +228,22 @@ impl<'a> Lexer<'a> {
                     position: start_pos,
                 }
             })
-        }
-        else {
+        } else {
             None
-        }
-    }
-
-    fn match_symbol(&self, c: char) -> Option<TokenKind> {
-        match c {
-            '(' => Some(TokenKind::LeftParen),
-            ')' => Some(TokenKind::RightParen),
-            _ => None,
         }
     }
 
     fn identifier_token(&mut self) -> Option<Token> {
         let mut identifier = String::new();
         let start_pos = self.position.clone();
-        if let Some(&c) = self.peek().filter(|c| c.is_alphabetic() || **c == '_') {
-            identifier.push(c);
-            self.advance();
-        } 
-        else {
+        if self.peek().is_some_and(|c| c.is_alphabetic() || c == '_') {
+            identifier.push(self.advance());
+        } else {
             return None;
         }
-        while let Some(&c) = self.peek().filter(|c| c.is_alphanumeric() || **c == '_') {
-            identifier.push(c);
-            self.advance();
+        while self.peek().is_some_and(|c| c.is_alphanumeric() || c == '_') {
+            identifier.push(self.advance());
         }
-
-
         Some(Token {
             kind: self.match_identifier_with_keyword(&identifier),
             value: identifier,
@@ -217,25 +251,14 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    fn match_identifier_with_keyword(&self, identifier: &str) -> TokenKind {
-        match identifier {
-            "let" => TokenKind::LetKeyword,
-            "be" => TokenKind::BeKeyword,
-            _ => TokenKind::Identifier,
-        }
-    }
-
     // Group consecutive unknown characters into a single Unknown token
     fn unknown_token(&mut self) -> Option<Token> {
         let mut unknown = String::new();
         let start_pos = self.position.clone();
-        
-        while let Some(&c) = self.peek() {
+        while let Some(c) = self.peek() {
             if !self.is_char_known(c) {
-                unknown.push(c);
-                self.advance();
-            } 
-            else {
+                unknown.push(self.advance());
+            } else {
                 break;
             }
         }
@@ -245,8 +268,7 @@ impl<'a> Lexer<'a> {
                 value: unknown,
                 position: start_pos,
             })
-        } 
-        else {
+        } else {
             None
         }
     }
@@ -266,10 +288,31 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_char_known(&self, c: char) -> bool {
-        c.is_ascii_digit() || 
-        c.is_alphabetic()  || 
-        c.is_whitespace()  ||
-        ['-', '+', '-', '*', '/'].contains(&c)
+        c.is_ascii_digit()
+            || c.is_alphabetic()
+            || c.is_whitespace()
+            || self.match_symbol(c).is_some()
+            || OPERATORS.iter().any(|(op_str, _)| **op_str == c.to_string())
+    }
+
+    // Helper to match symbol
+    fn match_symbol(&self, c: char) -> Option<TokenKind> {
+        match c {
+            '(' => Some(TokenKind::LeftParen),
+            ')' => Some(TokenKind::RightParen),
+            _ => None,
+        }
+    }
+
+    // Helper to match identifier or keyword
+    fn match_identifier_with_keyword(&self, identifier: &str) -> TokenKind {
+        match identifier {
+            "let" => TokenKind::LetKeyword,
+            "be" => TokenKind::BeKeyword,
+            "and" => TokenKind::And,
+            "or" => TokenKind::Or,
+            _ => TokenKind::Identifier,
+        }
     }
 }
 
@@ -278,5 +321,48 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()
+    }
+}
+
+struct LexerInputBuffer<'a> {
+    input: &'a str,
+    position: usize,
+}
+
+
+impl LexerInputBuffer<'_> {
+    fn new(input: &str) -> LexerInputBuffer {
+        LexerInputBuffer {
+            input,
+            position: 0,
+        }
+    }
+
+    fn next(&mut self) -> Option<char> {
+        if self.position < self.input.len() {
+            let c = self.input[self.position..].chars().next()?;
+            self.position += c.len_utf8();
+            Some(c)
+        } else {
+            None
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input[self.position..].chars().next()
+    }
+
+    fn rewind(&mut self, count: usize) {
+        if count > self.position {
+            self.position = 0;
+        } else {
+            let mut chars = self.input[..self.position].chars();
+            chars.nth_back(count - 1);
+            self.position = chars.as_str().len();
+        }
+    }
+
+    fn start(&self) -> &str {
+        &self.input[self.position..]
     }
 }

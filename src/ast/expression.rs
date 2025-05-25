@@ -1,5 +1,6 @@
 use crate::lexer::Token;
 
+#[derive(Debug, PartialEq)] // Derive Debug and PartialEq for Expression to allow test assertions
 pub enum Expression {
     Number(i64),
 
@@ -21,17 +22,42 @@ pub enum Expression {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOperator {
+    /// Arithmetic Operators
     Add,
     Subtract,
     Multiply,
     Divide,
+
+    /// Comparison Operators
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+    LessThanOrEqual,
+    GreaterThanOrEqual,
+    /// Logical Operators
+    And,
+    Or,
 }
 
 impl BinaryOperator {
     pub fn precedence(&self) -> u8 {
         match self {
-            BinaryOperator::Add | BinaryOperator::Subtract => 1,
-            BinaryOperator::Multiply | BinaryOperator::Divide => 2,
+            // Logical operators (lowest precedence)
+            BinaryOperator::Or => 0,
+            BinaryOperator::And => 1,
+
+            // Comparison operators
+            BinaryOperator::Equal
+            | BinaryOperator::NotEqual
+            | BinaryOperator::LessThan
+            | BinaryOperator::GreaterThan
+            | BinaryOperator::LessThanOrEqual
+            | BinaryOperator::GreaterThanOrEqual => 2,
+
+            // Arithmetic operators
+            BinaryOperator::Add | BinaryOperator::Subtract => 3,
+            BinaryOperator::Multiply | BinaryOperator::Divide => 4,
         }
     }
 }
@@ -46,6 +72,14 @@ impl TryFrom<crate::lexer::TokenKind> for BinaryOperator {
             crate::lexer::TokenKind::Minus => Ok(BinaryOperator::Subtract),
             crate::lexer::TokenKind::Star => Ok(BinaryOperator::Multiply),
             crate::lexer::TokenKind::Slash => Ok(BinaryOperator::Divide),
+            crate::lexer::TokenKind::EqualEqual => Ok(BinaryOperator::Equal),
+            crate::lexer::TokenKind::NotEqual => Ok(BinaryOperator::NotEqual),
+            crate::lexer::TokenKind::LessThan => Ok(BinaryOperator::LessThan),
+            crate::lexer::TokenKind::GreaterThan => Ok(BinaryOperator::GreaterThan),
+            crate::lexer::TokenKind::LessThanOrEqual => Ok(BinaryOperator::LessThanOrEqual),
+            crate::lexer::TokenKind::GreaterThanOrEqual => Ok(BinaryOperator::GreaterThanOrEqual),
+            crate::lexer::TokenKind::And => Ok(BinaryOperator::And),
+            crate::lexer::TokenKind::Or => Ok(BinaryOperator::Or),
             _ => Err(()),
         }
     }
