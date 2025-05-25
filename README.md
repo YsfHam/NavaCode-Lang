@@ -130,7 +130,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 
 ### MVP Features (Current Progress)
 - [x] Variable declarations
-- [ ] Variable assignment
+- [x] Variable assignment
 
 1. **Arithmetic and Logical Expressions**
   - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)
