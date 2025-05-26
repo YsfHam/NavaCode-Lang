@@ -3,3 +3,5 @@ pub mod ast;
 pub mod parser;
 pub mod utils;
 pub mod diagnostic;
+pub mod compiler;
+pub mod interpreter;
