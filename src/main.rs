@@ -4,24 +4,20 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-let n be 5
-let factorial be 1
-let i be 1
+        let a be 0
+        let b be 1
+        let c be 2
 
-set factorial to factorial * i
-set i to i + 1
+        let result be a
 
-set factorial to factorial * i
-set i to i + 1
+        if b > result then
+            set result to b
+        end
 
-set factorial to factorial * i
-set i to i + 1
-
-set factorial to factorial * i
-set i to i + 1
-
-set factorial to factorial * i
-"#;
+        if c > result then
+            set result to c
+        end
+    "#;
 
     println!("Starting compilation...");
     let compiler = Compiler::new();
@@ -34,10 +30,7 @@ set factorial to factorial * i
         Ok(compilation_unit) => {
             println!("Compilation successful!");
             AstDebugPrinter::new().explore_ast(&compilation_unit.ast);
-            let mut interpreter = Interpreter::new();
-            interpreter.explore_ast(&compilation_unit.ast);
-            interpreter.display_state();
-
+            Interpreter::interpret(&compilation_unit.ast);
         },
         Err(e) => {
             eprintln!("Compilation failed: {}", e);

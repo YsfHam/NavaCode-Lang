@@ -13,6 +13,10 @@ pub enum TokenKind {
     NotKeyword,
     SetKeyword,
     ToKeyword,
+    IfKeyword,
+    ThenKeyword,
+    EndKeyword,
+    ElseKeyword,
 
     // Operators
     Plus,
@@ -64,6 +68,10 @@ impl fmt::Display for TokenKind {
             TokenKind::Bang => "!",
             TokenKind::SetKeyword => "set",
             TokenKind::ToKeyword => "to",
+            TokenKind::IfKeyword => "if",
+            TokenKind::ThenKeyword => "then",
+            TokenKind::EndKeyword => "end",
+            TokenKind::ElseKeyword => "else",
         };
         write!(f, "{s}")
     }
@@ -83,7 +91,7 @@ pub struct Token {
 }
 
 
-static OPERATORS: [(&str, TokenKind); 11] = [
+static OPERATORS: &[(&str, TokenKind)] = &[
     ("+", TokenKind::Plus), 
     ("-", TokenKind::Minus), 
     ("*", TokenKind::Star), 
@@ -323,6 +331,10 @@ impl<'a> Lexer<'a> {
             "not" => TokenKind::NotKeyword,
             "set" => TokenKind::SetKeyword,
             "to" => TokenKind::ToKeyword,
+            "if" => TokenKind::IfKeyword,
+            "then" => TokenKind::ThenKeyword,
+            "end" => TokenKind::EndKeyword,
+            "else" => TokenKind::ElseKeyword,
             _ => TokenKind::Identifier,
         }
     }

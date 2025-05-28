@@ -1,7 +1,7 @@
 use navacodelang::lexer::{Lexer, Token, TokenKind, TokenPosition};
 use navacodelang::parser::Parser;
 use navacodelang::ast::{Ast, statement::Statement, expression::Expression};
-use navacodelang::ast::expression::BinaryOperator;
+use navacodelang::ast::expression::{BinaryOperator, UnaryOperator};
 
 fn lex_all(input: &str) -> Vec<(TokenKind, String)> {
     Lexer::new(input)
@@ -449,16 +449,165 @@ fn test_parser_variable_assignment() {
     assert_eq!(name.value, "x");
     assert_eq!(*value, Expression::Number(20));
 }
+    
+// Test for `if` statement parsing
+#[test]
+fn test_parser_if_statement() {
+    let ast = parse_program("if x > 0 then\nset y to 1\nend").unwrap();
+    assert_eq!(ast.statements().len(), 1);
 
-// Commenting out the test for `let mutable` as it is not yet implemented in the language.
-// #[test]
-// fn test_parser_mutable_variable() {
-//     let ast = parse_program("let mutable x be 10\nset x to x + 1").unwrap();
-//     assert_eq!(ast.statements().len(), 2);
-// 
-//     // Check mutable variable declaration
-//     let stmt = &ast.statements()[0];
-//     let (name, value) = match stmt {
-//         Statement::VariableDeclaration { name, value } => (name, value),
-//         _ => panic!("Expected variable declaration"),
+    let stmt = &ast.statements()[0];
+    match stmt {
+        Statement::IfStatement { if_then_branch: if_then_block, else_branch } => {
+            // Check condition
+            match if_then_block.condition {
+                Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                    assert_eq!(**left, Expression::Variable(Token { kind: TokenKind::Identifier, value: "x".to_string(), position: TokenPosition { line: 1, column: 4 } }));
+                    assert_eq!(*operator, BinaryOperator::GreaterThan);
+                    assert_eq!(**right, Expression::Number(0));
+                }
+                _ => panic!("Expected binary operation in condition"),
+            }
+
+            // Check then branch
+            match *if_then_block.then_branch {
+                Statement::BlockStatement { ref statements } => {
+                    assert_eq!(statements.len(), 1);
+                    match &statements[0] {
+                        Statement::VariableAssignment { name, value } => {
+                            assert_eq!(name.value, "y");
+                            assert_eq!(*value, Expression::Number(1));
+                        }
+                        _ => panic!("Expected variable assignment in then branch"),
+                    }
+                }
+                _ => panic!("Expected block statement in then branch"),
+            }
+
+            // Check else branch
+            assert!(else_branch.is_none());
+        }
+        _ => panic!("Expected if statement"),
+    }
+}
+
+#[test]
+fn test_parser_if_else_statement() {
+    let ast = parse_program("if x > 0 then\nset y to 1\nelse\nset y to -1\nend").unwrap();
+    assert_eq!(ast.statements().len(), 1);
+
+    let stmt = &ast.statements()[0];
+    match stmt {
+        Statement::IfStatement { if_then_branch: if_then_block, else_branch } => {
+            // Check condition
+            match &if_then_block.condition {
+                Expression::BinaryOperation { left, operator, right } => {
+                    assert_eq!(**left, Expression::Variable(Token { kind: TokenKind::Identifier, value: "x".to_string(), position: TokenPosition { line: 1, column: 4 } }));
+                    assert_eq!(*operator, BinaryOperator::GreaterThan);
+                    assert_eq!(**right, Expression::Number(0));
+                }
+                _ => panic!("Expected binary operation in condition"),
+            }
+
+            // Check then branch
+            match &*if_then_block.then_branch {
+                Statement::BlockStatement { statements } => {
+                    assert_eq!(statements.len(), 1);
+                    match &statements[0] {
+                        Statement::VariableAssignment { name, value } => {
+                            assert_eq!(name.value, "y");
+                            assert_eq!(*value, Expression::Number(1));
+                        }
+                        _ => panic!("Expected variable assignment in then branch"),
+                    }
+                }
+                _ => panic!("Expected block statement in then branch"),
+            }
+
+            // Check else branch
+            match else_branch {
+                Some(else_branch) => match &**else_branch {
+                    Statement::BlockStatement { statements } => {
+                        assert_eq!(statements.len(), 1);
+                        match &statements[0] {
+                            Statement::VariableAssignment { name, value } => {
+                                assert_eq!(name.value, "y");
+                                assert_eq!(*value, crate::Expression::UnaryOperation { operator: UnaryOperator::Negate, operand: Box::new(Expression::Number(1)) });
+                            }
+                            _ => panic!("Expected variable assignment in else branch"),
+                        }
+                    }
+                    _ => panic!("Expected block statement in else branch"),
+                }
+                None => panic!("Expected else branch"),
+            }
+        }
+        _ => panic!("Expected if statement"),
+    }
+}
+
+#[test]
+fn test_parser_nested_if_statement() {
+    let ast = parse_program("if x > 0 then\nif y < 0 then\nset z to 1\nend\nend").unwrap();
+    assert_eq!(ast.statements().len(), 1);
+
+    let stmt = &ast.statements()[0];
+    match stmt {
+        Statement::IfStatement { if_then_branch, else_branch } => {
+            // Check outer condition
+            match if_then_branch.condition {
+                Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                    assert_eq!(**left, Expression::Variable(Token { kind: TokenKind::Identifier, value: "x".to_string(), position: TokenPosition { line: 1, column: 4 } }));
+                    assert_eq!(*operator, BinaryOperator::GreaterThan);
+                    assert_eq!(**right, Expression::Number(0));
+                }
+                _ => panic!("Expected binary operation in outer condition"),
+            }
+
+            // Check outer then branch
+            match *if_then_branch.then_branch {
+                Statement::BlockStatement { ref statements } => {
+                    assert_eq!(statements.len(), 1);
+                    match &statements[0] {
+                        Statement::IfStatement { if_then_branch, else_branch } => {
+                            // Check inner condition
+                            match if_then_branch.condition {
+                                Expression::BinaryOperation { ref left, ref operator, ref right } => {
+                                    assert_eq!(**left, Expression::Variable(Token { kind: TokenKind::Identifier, value: "y".to_string(), position: TokenPosition { line: 2, column: 4 } }));
+                                    assert_eq!(*operator, BinaryOperator::LessThan);
+                                    assert_eq!(**right, Expression::Number(0));
+                                }
+                                _ => panic!("Expected binary operation in inner condition"),
+                            }
+
+                            // Check inner then branch
+                            match *if_then_branch.then_branch {
+                                Statement::BlockStatement { ref statements } => {
+                                    assert_eq!(statements.len(), 1);
+                                    match &statements[0] {
+                                        Statement::VariableAssignment { name, value } => {
+                                            assert_eq!(name.value, "z");
+                                            assert_eq!(*value, Expression::Number(1));
+                                        }
+                                        _ => panic!("Expected variable assignment in inner then branch"),
+                                    }
+                                }
+                                _ => panic!("Expected block statement in inner then branch"),
+                            }
+
+                            // Check inner else branch
+                            assert!(else_branch.is_none());
+                        }
+                        _ => panic!("Expected inner if statement"),
+                    }
+                }
+                _ => panic!("Expected block statement in outer then branch"),
+            }
+
+            // Check outer else branch
+            assert!(else_branch.is_none());
+        }
+        _ => panic!("Expected outer if statement"),
+    }
+}
 

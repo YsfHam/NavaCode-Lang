@@ -52,4 +52,31 @@ impl AstExplorer for AstDebugPrinter {
         self.visit_expression(value);
         self.indent_level -= 1;
     }
+    
+    fn visit_if_statement(&mut self, condition: &crate::ast::expression::Expression, then_branch: &crate::ast::statement::Statement, else_branch: Option<&crate::ast::statement::Statement>) {
+        println!("{}If Statement:", "  ".repeat(self.indent_level));
+        self.indent_level += 1;
+        println!("{}Condition:", "  ".repeat(self.indent_level));
+        self.visit_expression(condition);
+        
+        println!("{}Then Branch:", "  ".repeat(self.indent_level));
+        self.visit_statement(then_branch);
+        
+        if let Some(else_branch) = else_branch {
+            println!("{}Else Branch:", "  ".repeat(self.indent_level));
+            self.visit_statement(else_branch);
+        }
+        
+        self.indent_level -= 1;
+    }
+    
+    fn block_statement_on_enter(&mut self) {
+        println!("{}Entering Block Statement", "  ".repeat(self.indent_level));
+        self.indent_level += 1;
+    }
+    
+    fn block_statement_on_exit(&mut self) {
+        self.indent_level -= 1;
+        println!("{}Exiting Block Statement", "  ".repeat(self.indent_level));
+    }
 }

@@ -1,4 +1,4 @@
-use crate::{ast::Ast, diagnostic::Diagnostic, lexer::Lexer, parser::Parser};
+use crate::{ast::Ast, diagnostic::Diagnostics, lexer::Lexer, parser::Parser};
 
 pub struct CompilationUnit {
     pub ast: Ast
@@ -27,7 +27,7 @@ impl Compiler {
         Compiler { _private: () }
     }
 
-    pub fn compile(&self, source_code: SourceCode) -> Result<CompilationUnit, Diagnostic> {
+    pub fn compile(&self, source_code: SourceCode) -> Result<CompilationUnit, Diagnostics> {
         let lexer = Lexer::new(source_code.as_str());
 
         let mut parser = Parser::new(lexer);

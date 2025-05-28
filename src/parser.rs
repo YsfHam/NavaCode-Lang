@@ -1,30 +1,45 @@
 use std::iter::Peekable;
 
-use crate::{ast::{expression::{BinaryOperator, Expression, UnaryOperator}, statement::Statement, Ast}, diagnostic::{self, Diagnostic}, lexer::{Token, TokenKind}};
+use crate::{ast::{expression::{BinaryOperator, Expression, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}};
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RecoverMode {
+    RecoverFromMisplacedElseToken,
+}
+
+
+static STATEMENT_START_TOKENS: &[TokenKind] = &[
+    TokenKind::LetKeyword,
+    TokenKind::SetKeyword,
+    TokenKind::IfKeyword,
+];
 
 pub struct Parser<I: Iterator<Item = Token>> {
     tokens: Peekable<I>,
+
+    recover_mode: Option<RecoverMode>,
 }
 
 impl<I: Iterator<Item = Token>> Parser<I> {
     pub fn new(tokens: I) -> Self {
         Parser {
             tokens: tokens.peekable(),
+            recover_mode: None,
         }
     }
 
-    pub fn parse(&mut self) -> Result<Ast, Diagnostic> {
+    pub fn parse(&mut self) -> Result<Ast, Diagnostics> {
         let mut ast = Ast::new();
 
-        let mut diagnostic = Diagnostic::new();
+        let mut diagnostic = Diagnostics::new();
 
         loop {
             match self.parse_statement() {
                 Ok(Some(stmt)) => ast.add_statement(stmt),
                 Ok(None) => break,
-                Err(err) => {
-                    diagnostic.report_error(err);
+                Err(diag) => {
+                    diagnostic.report(diag);
                     self.recover();
                 }
             }
@@ -41,20 +56,25 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         self.tokens.next().unwrap()
     }
 
+    fn advance_if(&mut self, expected: &[TokenKind]) -> Option<Token> {
+        if expected.contains(&self.peek().kind) {
+            Some(self.advance())
+        } else {
+            None
+        }
+    }
+
     fn peek(&mut self) -> &Token {
         self.tokens.peek().unwrap()
     }
 
-    fn expect(&mut self, expected_tokens: &[TokenKind]) -> Result<Token, diagnostic::Error> {
+    fn expect(&mut self, expected_tokens: &[TokenKind]) -> Result<Token, Diagnostic> {
 
         let token = self.peek();
         if expected_tokens.contains(&token.kind) {
             Ok(self.advance())
         } else {
-            Err(diagnostic::Error::UnexpectedToken {
-                expected: expected_tokens.to_vec(),
-                found: token.clone(),
-            })
+            Err(Diagnostic::unexpected_token(expected_tokens.to_vec(), token.clone()))
         }
 
     }
@@ -62,44 +82,80 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn recover(&mut self) {
 
         loop {
-            let token = self.peek();
-            match token.kind {
-                TokenKind::EndOfFile |
-                TokenKind::LetKeyword |
-                TokenKind::SetKeyword
-                => {
-                    break;
-                }
-                _ => {
-                    self.advance();
-                }
+            let token_kind = self.peek().kind;
+
+            if token_kind == TokenKind::EndOfFile || STATEMENT_START_TOKENS.contains(&token_kind) {
+                // If we reach the end of file or a statement start token, we can stop recovering
+                break;
+            }
+            else {
+                // Otherwise, we skip the current token
+                self.advance();
             }
         }
 
     }
 
-
-    fn parse_statement(&mut self) -> Result<Option<Statement>, diagnostic::Error> {
+    fn parse_statement_guard(&mut self) -> TokenKind {
         let next_token_kind = self.peek().kind;
+
+        if next_token_kind == TokenKind::EndKeyword && 
+        self.recover_mode.is_some_and(|mode| mode == RecoverMode::RecoverFromMisplacedElseToken) 
+        {
+            self.recover_mode = None; // Reset recover mode
+            self.advance();
+        }
+
+
+        self.peek().kind
+    }
+
+
+    fn parse_statement(&mut self) -> Result<Option<Statement>, Diagnostic> {
+        let next_token_kind = self.parse_statement_guard();
 
         if next_token_kind == TokenKind::EndOfFile {
             return Ok(None);
         }
 
-
         match next_token_kind {
             TokenKind::LetKeyword => Ok(Some(self.parse_variable_declaration()?)),
             TokenKind::SetKeyword => Ok(Some(self.parse_variable_assignement()?)),
+            TokenKind::IfKeyword => Ok(Some(self.parse_if_statement()?)),
+
+
+            // Reporting errors
+            TokenKind::ElseKeyword => Err(
+                Diagnostic::unexpected_else_token(self.advance().position)
+            ),
+            TokenKind::EndKeyword => Err(
+                Diagnostic::unexpected_end_token(self.advance().position)
+            ),
             _ => {
-                return Err(diagnostic::Error::UnexpectedToken {
-                    expected: vec![TokenKind::LetKeyword],
-                    found: self.advance(),
-                });
+                return Err(Diagnostic::unexpected_token(
+                    STATEMENT_START_TOKENS.to_vec(),
+                    self.advance()
+                ));
             }
         }
     }
 
-    fn parse_variable_declaration(&mut self) -> Result<Statement, diagnostic::Error> {
+    fn parse_statements_until(&mut self, stop_tokens: &[TokenKind]) -> Result<Statement, Diagnostic> {
+        let mut statements = Vec::new();
+
+        while !stop_tokens.contains(&self.peek().kind) {
+            if let Some(stmt) = self.parse_statement()? {
+                statements.push(stmt);
+            } else {
+                // If we reach the end of file or a stop token, we stop parsing
+                break;
+            }
+        }
+
+        Ok(Statement::BlockStatement { statements })
+    }
+
+    fn parse_variable_declaration(&mut self) -> Result<Statement, Diagnostic> {
         self.expect(&[TokenKind::LetKeyword])?;
         let name_token = self.expect(&[TokenKind::Identifier])?;
         self.expect(&[TokenKind::BeKeyword])?;
@@ -111,7 +167,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         })
     }
 
-    fn parse_variable_assignement(&mut self) -> Result<Statement, diagnostic::Error> {
+    fn parse_variable_assignement(&mut self) -> Result<Statement, Diagnostic> {
         self.expect(&[TokenKind::SetKeyword])?;
         let name_token = self.expect(&[TokenKind::Identifier])?;
         self.expect(&[TokenKind::ToKeyword])?;
@@ -123,11 +179,53 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         })
     }
 
-    fn parse_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+    fn parse_if_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let if_then_branch = self.parse_if_then_branch()?;
+
+        let end_token = self.advance_if(&[TokenKind::EndKeyword]);
+        if end_token.is_some() && self.peek().kind == TokenKind::ElseKeyword {
+            self.recover_mode = Some(RecoverMode::RecoverFromMisplacedElseToken);
+            return Err(Diagnostic::unexpected_else_after_end(self.advance().position));
+        }
+        
+        let else_block = if self.peek().kind == TokenKind::ElseKeyword {
+            Some(self.parse_else_branch()?)
+        }
+        else {
+            None
+        }; 
+
+        Ok(Statement::IfStatement {
+            if_then_branch,
+            else_branch: else_block.map(Box::new),
+        })
+    }
+
+    fn parse_if_then_branch(&mut self) -> Result<IfThenBranch, Diagnostic> {
+        self.expect(&[TokenKind::IfKeyword])?;
+        let condition = self.parse_expression()?;
+        self.expect(&[TokenKind::ThenKeyword])?;
+        let then_branch = self.parse_statements_until(&[TokenKind::ElseKeyword, TokenKind::EndKeyword])?;
+
+        Ok(IfThenBranch { condition, then_branch: Box::new(then_branch) })
+    }
+
+    fn parse_else_branch(&mut self) ->Result<Statement, Diagnostic> {
+        self.expect(&[TokenKind::ElseKeyword])?;
+        let else_branch = self.parse_statements_until(&[TokenKind::EndKeyword])?;
+
+        self.expect(&[TokenKind::EndKeyword])?;
+
+        Ok(else_branch)
+    }
+
+    
+
+    fn parse_expression(&mut self) -> Result<Expression, Diagnostic> {
         self.parse_expression_with_precedence(0)
     }
 
-    fn parse_expression_with_precedence(&mut self, min_precedence: u8) -> Result<Expression, diagnostic::Error> {
+    fn parse_expression_with_precedence(&mut self, min_precedence: u8) -> Result<Expression, Diagnostic> {
         let mut left = self.parse_unary_expression()?;
 
         while let Ok(op) = BinaryOperator::try_from(self.peek().kind) {
@@ -153,7 +251,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(left)
     }
 
-    fn parse_unary_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+    fn parse_unary_expression(&mut self) -> Result<Expression, Diagnostic> {
         
         if let Ok(op) = UnaryOperator::try_from(self.peek().kind) {
             self.advance(); // consume the operator
@@ -167,7 +265,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         self.parse_primary_expression()
     }
 
-    fn parse_primary_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+    fn parse_primary_expression(&mut self) -> Result<Expression, Diagnostic> {
 
         let next_token = self.peek();
         
@@ -178,14 +276,15 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         self.parse_literal_expression()
     }
 
-    fn parse_grouped_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+    fn parse_grouped_expression(&mut self) -> Result<Expression, Diagnostic> {
+
         self.expect(&[TokenKind::LeftParen])?;
         let expr = self.parse_expression()?;
         self.expect(&[TokenKind::RightParen])?;
         Ok(Expression::Grouped(Box::new(expr)))
     }
 
-    fn parse_literal_expression(&mut self) -> Result<Expression, diagnostic::Error> {
+    fn parse_literal_expression(&mut self) -> Result<Expression, Diagnostic> {
         let next_token = self.peek();
 
         match next_token.kind {
@@ -198,10 +297,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 Ok(Expression::Variable(identifier_token))
             }
             _ => {
-                Err(diagnostic::Error::UnexpectedToken {
-                    expected: vec![TokenKind::Number, TokenKind::Identifier],
-                    found: next_token.clone(),
-                })
+                Err(Diagnostic::unexpected_token(
+                    vec![TokenKind::Number, TokenKind::Identifier],
+                    next_token.clone(),
+                ))
             }
         }
     }

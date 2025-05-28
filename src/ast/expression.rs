@@ -20,7 +20,7 @@ pub enum Expression {
     Grouped(Box<Expression>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BinaryOperator {
     /// Arithmetic Operators
     Add,
@@ -84,7 +84,7 @@ impl TryFrom<crate::lexer::TokenKind> for BinaryOperator {
         }
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnaryOperator {
     Negate,
     Not,
