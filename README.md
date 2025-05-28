@@ -138,7 +138,8 @@ number           ::= [0-9]+(\.[0-9]+)?
   - [x] Support comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
 
 2. **Control Flow**
-  - [ ] Add `if` and `else` statements
+  - [x] Add `if` and `else` statements
+  - [ ] Add boolean value `true` and `false`
   - [ ] Implement `while` loops
   - [ ] Add `for` loops
 
