@@ -4,19 +4,21 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-        let a be 0
-        let b be 1
-        let c be 2
-
-        let result be a
-
-        if b > result then
-            set result to b
+        let x be 20
+        let y be 70
+        let z be 0
+        if x == y then
+            set z to 1
+        else if x > y then
+            set z to 2
+            set y to 7
+        else
+            set x to 0
+            set y to 0
+            set z to 99999
         end
 
-        if c > result then
-            set result to c
-        end
+        let u be 10
     "#;
 
     println!("Starting compilation...");

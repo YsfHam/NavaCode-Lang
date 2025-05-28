@@ -151,7 +151,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 break;
             }
         }
-
+        
         Ok(Statement::BlockStatement { statements })
     }
 
@@ -212,8 +212,13 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn parse_else_branch(&mut self) ->Result<Statement, Diagnostic> {
         self.expect(&[TokenKind::ElseKeyword])?;
-        let else_branch = self.parse_statements_until(&[TokenKind::EndKeyword])?;
 
+        if self.peek().kind == TokenKind::IfKeyword {
+            return self.parse_if_statement()
+        }
+        
+        let else_branch = self.parse_statements_until(&[TokenKind::EndKeyword])?;
+        
         self.expect(&[TokenKind::EndKeyword])?;
 
         Ok(else_branch)

@@ -2,6 +2,7 @@ use crate::lexer::Token;
 
 use super::expression::Expression;
 
+#[derive(Debug)]
 pub enum Statement {
     VariableDeclaration {
         name: Token,
@@ -23,6 +24,7 @@ pub enum Statement {
     },
 }
 
+#[derive(Debug)]
 pub struct IfThenBranch {
     pub condition: Expression,
     pub then_branch: Box<Statement>,
