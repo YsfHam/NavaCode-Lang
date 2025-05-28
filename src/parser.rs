@@ -182,6 +182,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn parse_if_statement(&mut self) -> Result<Statement, Diagnostic> {
         let if_then_branch = self.parse_if_then_branch()?;
 
+
         let end_token = self.advance_if(&[TokenKind::EndKeyword]);
         if end_token.is_some() && self.peek().kind == TokenKind::ElseKeyword {
             self.recover_mode = Some(RecoverMode::RecoverFromMisplacedElseToken);
@@ -191,9 +192,12 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let else_block = if self.peek().kind == TokenKind::ElseKeyword {
             Some(self.parse_else_branch()?)
         }
+        else if end_token.is_none() {
+            return Err(Diagnostic::unexpected_token(vec![TokenKind::EndKeyword], self.peek().clone()));
+        }
         else {
             None
-        }; 
+        };
 
         Ok(Statement::IfStatement {
             if_then_branch,
