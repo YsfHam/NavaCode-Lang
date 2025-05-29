@@ -79,4 +79,8 @@ impl AstExplorer for AstDebugPrinter {
         self.indent_level -= 1;
         println!("{}Exiting Block Statement", "  ".repeat(self.indent_level));
     }
+    
+    fn visit_boolean_expression(&mut self, value: bool) {
+        println!("{}Boolean: {}", "  ".repeat(self.indent_level), value);
+    }
 }

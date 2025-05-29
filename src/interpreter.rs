@@ -262,4 +262,8 @@ impl AstExplorer for Interpreter {
     fn block_statement_on_exit(&mut self) {
         self.pop_scope();
     }
+    
+    fn visit_boolean_expression(&mut self, value: bool) {
+        self.accumulator = Some(RuntimeValue::Bool(value));
+    }
 }

@@ -136,10 +136,10 @@ number           ::= [0-9]+(\.[0-9]+)?
   - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)
   - [x] Add logical operators (`and`, `or`, `not`)
   - [x] Support comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
+  - [x] Add boolean values `true` and `false`
 
 2. **Control Flow**
   - [x] Add `if` and `else` statements
-  - [ ] Add boolean value `true` and `false`
   - [ ] Implement `while` loops
   - [ ] Add `for` loops
 

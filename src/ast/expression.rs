@@ -3,6 +3,7 @@ use crate::lexer::Token;
 #[derive(Debug, PartialEq)] // Derive Debug and PartialEq for Expression to allow test assertions
 pub enum Expression {
     Number(i64),
+    Boolean(bool),
 
     Variable(Token),
 

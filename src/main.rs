@@ -4,10 +4,12 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
+        let x be false
+        let y be 0
+        if x then
+            set y to 1
         else
-
-        let x be 7
-
+            set y to 2
         end
     "#;
 

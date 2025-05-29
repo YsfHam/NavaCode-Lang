@@ -128,6 +128,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
 
             // Reporting errors
+            TokenKind::ElseKeyword if self.current_recovery_state() == Some(&ErrorRecoveryState::RecoverFromBadBlock) => {
+                self.advance();
+                self.parse_statement()
+            }
+
             TokenKind::ElseKeyword => {
                 self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock);
                 Err(
@@ -303,6 +308,14 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             TokenKind::Number => {
                 let number_token: Token = self.advance();
                 Ok(Expression::Number(number_token.value.parse().unwrap()))
+            }
+            TokenKind::TrueKeyword => {
+                self.advance(); // consume the 'true' keyword
+                Ok(Expression::Boolean(true))
+            }
+            TokenKind::FalseKeyword => {
+                self.advance(); // consume the 'false' keyword
+                Ok(Expression::Boolean(false))
             }
             TokenKind::Identifier => {
                 let identifier_token = self.advance();

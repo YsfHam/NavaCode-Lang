@@ -17,6 +17,8 @@ pub enum TokenKind {
     ThenKeyword,
     EndKeyword,
     ElseKeyword,
+    TrueKeyword,
+    FalseKeyword,
 
     // Operators
     Plus,
@@ -72,6 +74,8 @@ impl fmt::Display for TokenKind {
             TokenKind::ThenKeyword => "then",
             TokenKind::EndKeyword => "end",
             TokenKind::ElseKeyword => "else",
+            TokenKind::TrueKeyword => "true",
+            TokenKind::FalseKeyword => "false",
         };
         write!(f, "{s}")
     }
@@ -335,6 +339,8 @@ impl<'a> Lexer<'a> {
             "then" => TokenKind::ThenKeyword,
             "end" => TokenKind::EndKeyword,
             "else" => TokenKind::ElseKeyword,
+            "true" => TokenKind::TrueKeyword,
+            "false" => TokenKind::FalseKeyword,
             _ => TokenKind::Identifier,
         }
     }

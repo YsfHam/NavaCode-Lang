@@ -64,16 +64,18 @@ pub trait AstExplorer {
     fn visit_expression(&mut self, expression: &Expression) {
         match expression {
             Expression::Number(value) => self.visit_number_expression(*value),
+            Expression::Boolean(value) => self.visit_boolean_expression(*value),
             Expression::Variable(name) => self.visit_variable_expression(name),
             Expression::BinaryOperation { left, operator, right } => 
-                    self.visit_binary_operation(left, operator, right),
+                            self.visit_binary_operation(left, operator, right),
             Expression::UnaryOperation { operator, operand } =>
-                    self.visit_unary_operation(operator, operand),
+                            self.visit_unary_operation(operator, operand),
             Expression::Grouped(expression) => self.visit_expression(expression),
                     }
     }
     
     fn visit_number_expression(&mut self, value: i64);
+    fn visit_boolean_expression(&mut self, value: bool);
     fn visit_variable_expression(&mut self, name: &Token);
     fn visit_binary_operation(&mut self, left: &Expression, operator: &expression::BinaryOperator, right: &Expression);
     fn visit_unary_operation(&mut self, operator: &expression::UnaryOperator, operand: &Expression);
