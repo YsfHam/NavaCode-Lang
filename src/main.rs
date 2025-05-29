@@ -4,13 +4,7 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-        let x be false
-        let y be 0
-        if x then
-            set y to 1
-        else
-            set y to 2
-        end
+    
     "#;
 
     println!("Starting compilation...");

@@ -140,7 +140,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 
 2. **Control Flow**
   - [x] Add `if` and `else` statements
-  - [ ] Implement `while` loops
+  - [x] Implement `while` loops
   - [ ] Add `for` loops
 
 3. **Functions**

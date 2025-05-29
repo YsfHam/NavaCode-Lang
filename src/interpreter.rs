@@ -85,7 +85,7 @@ enum RuntimeError {
     VariableNotFound(String),
     InvalidOperation,
     DivisionByZero,
-    InvalidIfCondition,
+    InvalidCondition,
 }
 
 
@@ -158,7 +158,7 @@ impl Interpreter {
         match error {
             RuntimeError::VariableNotFound(name) => panic!("Variable not found: {}", name),
             RuntimeError::DivisionByZero => panic!("Error: Division by zero"),
-            RuntimeError::InvalidIfCondition => panic!("Error: condition in if block must be a boolean"),
+            RuntimeError::InvalidCondition => panic!("Error: condition in if block must be a boolean"),
             RuntimeError::InvalidOperation => panic!("Error: invalid operation"),
         }
     }
@@ -249,7 +249,7 @@ impl AstExplorer for Interpreter {
             },
 
             _ => {
-                self.report_error(RuntimeError::InvalidIfCondition);
+                self.report_error(RuntimeError::InvalidCondition);
             }
         }
 
@@ -265,5 +265,24 @@ impl AstExplorer for Interpreter {
     
     fn visit_boolean_expression(&mut self, value: bool) {
         self.accumulator = Some(RuntimeValue::Bool(value));
+    }
+    
+    fn visit_while_statement(&mut self, condition: &crate::ast::expression::Expression, body: &crate::ast::statement::Statement) {
+        loop {
+            self.visit_expression(condition);
+            let condition_value = self.get_accumulator_value();
+
+            match condition_value {
+                RuntimeValue::Bool(true) => {
+                    self.visit_statement(body);
+                }
+                RuntimeValue::Bool(false) => {
+                    break;
+                }
+                _ => {
+                    self.report_error(RuntimeError::InvalidCondition);
+                }
+            }
+        }
     }
 }

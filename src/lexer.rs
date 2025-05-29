@@ -19,6 +19,8 @@ pub enum TokenKind {
     ElseKeyword,
     TrueKeyword,
     FalseKeyword,
+    WhileKeyword,
+    DoKeyword,
 
     // Operators
     Plus,
@@ -76,6 +78,8 @@ impl fmt::Display for TokenKind {
             TokenKind::ElseKeyword => "else",
             TokenKind::TrueKeyword => "true",
             TokenKind::FalseKeyword => "false",
+            TokenKind::WhileKeyword => "while",
+            TokenKind::DoKeyword => "do",
         };
         write!(f, "{s}")
     }
@@ -341,6 +345,8 @@ impl<'a> Lexer<'a> {
             "else" => TokenKind::ElseKeyword,
             "true" => TokenKind::TrueKeyword,
             "false" => TokenKind::FalseKeyword,
+            "while" => TokenKind::WhileKeyword,
+            "do" => TokenKind::DoKeyword,
             _ => TokenKind::Identifier,
         }
     }

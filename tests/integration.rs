@@ -105,7 +105,7 @@ fn test_lexer_logical_operators() {
 // Parser tests
 fn parse_program(input: &str) -> Result<Ast, String> {
     let tokens: Vec<_> = Lexer::new(input).collect();
-    let mut parser = Parser::new(tokens.into_iter());
+    let parser = Parser::new(tokens.into_iter());
     parser.parse().map_err(|d| format!("{d:?}"))
 }
 

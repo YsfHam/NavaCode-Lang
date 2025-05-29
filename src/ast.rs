@@ -37,24 +37,27 @@ pub trait AstExplorer {
     fn visit_statement(&mut self, statement: &Statement) {
         match statement {
             Statement::VariableDeclaration { name, value } => {
-                        self.visit_variable_declaration(name, value);
-                    }
+                                self.visit_variable_declaration(name, value);
+                            }
             Statement::VariableAssignment { name, value } => {
-                        self.visit_variable_assignement(name, value);
-                    }
+                                self.visit_variable_assignement(name, value);
+                            }
             Statement::IfStatement { if_then_branch: if_then_block, else_branch } 
-                => self.visit_if_statement(&if_then_block.condition, &if_then_block.then_branch, else_branch.as_ref().map(|b| &**b)),
+                        => self.visit_if_statement(&if_then_block.condition, &if_then_block.then_branch, else_branch.as_ref().map(|b| &**b)),
             Statement::BlockStatement { statements } => {
-                self.block_statement_on_enter();
-                statements.iter().for_each(|s: &Statement| self.visit_statement(s));
-                self.block_statement_on_exit();
-            }
+                        self.block_statement_on_enter();
+                        statements.iter().for_each(|s: &Statement| self.visit_statement(s));
+                        self.block_statement_on_exit();
+                    }
+            Statement::WhileStatement { condition, body } => 
+                    self.visit_while_statement(condition, body),
         }
     }
 
     fn visit_variable_declaration(&mut self, name: &Token, value: &Expression);
     fn visit_variable_assignement(&mut self, name: &Token, value: &Expression);
     fn visit_if_statement(&mut self, condition: &Expression, then_branch: &Statement, else_branch: Option<&Statement>);
+    fn visit_while_statement(&mut self, condition: &Expression, body: &Statement);
 
 
     fn block_statement_on_enter(&mut self);

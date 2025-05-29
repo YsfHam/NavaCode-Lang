@@ -7,7 +7,7 @@ use crate::lexer::{Token, TokenKind, TokenPosition};
 enum DiagnosticError {
     UnexpectedToken {
         expected: Vec<TokenKind>,
-        found: TokenKind
+        found: String,
     },
     UnexpectedElseAfterEnd,
     UnexpectedEndToken,
@@ -52,7 +52,7 @@ impl Diagnostic {
         Self {
             diagnostic_type: DiagnosticType::Error(DiagnosticError::UnexpectedToken {
                 expected,
-                found: found.kind,
+                found: found.value,
             }),
             position: found.position,
         }

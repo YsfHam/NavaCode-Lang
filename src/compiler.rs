@@ -30,7 +30,7 @@ impl Compiler {
     pub fn compile(&self, source_code: SourceCode) -> Result<CompilationUnit, Diagnostics> {
         let lexer = Lexer::new(source_code.as_str());
 
-        let mut parser = Parser::new(lexer);
+        let parser = Parser::new(lexer);
         
         println!("Parsing tokens...");
 

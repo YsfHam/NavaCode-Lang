@@ -22,6 +22,7 @@ pub enum Statement {
     BlockStatement {
         statements: Vec<Statement>,
     },
+    WhileStatement { condition: Expression, body: Box<Statement> },
 }
 
 #[derive(Debug)]

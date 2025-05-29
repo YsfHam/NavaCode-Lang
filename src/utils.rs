@@ -83,4 +83,16 @@ impl AstExplorer for AstDebugPrinter {
     fn visit_boolean_expression(&mut self, value: bool) {
         println!("{}Boolean: {}", "  ".repeat(self.indent_level), value);
     }
+    
+    fn visit_while_statement(&mut self, condition: &crate::ast::expression::Expression, body: &crate::ast::statement::Statement) {
+        println!("{}While Statement:", "  ".repeat(self.indent_level));
+        self.indent_level += 1;
+        println!("{}Condition:", "  ".repeat(self.indent_level));
+        self.visit_expression(condition);
+        
+        println!("{}Body:", "  ".repeat(self.indent_level));
+        self.visit_statement(body);
+        
+        self.indent_level -= 1;
+    }
 }
