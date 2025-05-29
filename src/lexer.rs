@@ -27,6 +27,7 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
+    Percent,
     EqualEqual,
     NotEqual,
     LessThan,
@@ -80,6 +81,7 @@ impl fmt::Display for TokenKind {
             TokenKind::FalseKeyword => "false",
             TokenKind::WhileKeyword => "while",
             TokenKind::DoKeyword => "do",
+            TokenKind::Percent => "%",
         };
         write!(f, "{s}")
     }
@@ -111,6 +113,7 @@ static OPERATORS: &[(&str, TokenKind)] = &[
     ("<=", TokenKind::LessThanOrEqual),
     (">=", TokenKind::GreaterThanOrEqual),
     ("!", TokenKind::Bang),
+    ("%", TokenKind::Percent),
 ];
 
 pub struct Lexer<'a> {

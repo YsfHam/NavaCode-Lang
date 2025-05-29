@@ -28,6 +28,7 @@ pub enum BinaryOperator {
     Subtract,
     Multiply,
     Divide,
+    Modulus,
 
     /// Comparison Operators
     Equal,
@@ -58,7 +59,11 @@ impl BinaryOperator {
 
             // Arithmetic operators
             BinaryOperator::Add | BinaryOperator::Subtract => 3,
-            BinaryOperator::Multiply | BinaryOperator::Divide => 4,
+
+              BinaryOperator::Multiply 
+            | BinaryOperator::Divide 
+            | BinaryOperator::Modulus
+            => 4,
         }
     }
 }
@@ -73,6 +78,7 @@ impl TryFrom<crate::lexer::TokenKind> for BinaryOperator {
             crate::lexer::TokenKind::Minus => Ok(BinaryOperator::Subtract),
             crate::lexer::TokenKind::Star => Ok(BinaryOperator::Multiply),
             crate::lexer::TokenKind::Slash => Ok(BinaryOperator::Divide),
+            crate::lexer::TokenKind::Percent => Ok(BinaryOperator::Modulus),
             crate::lexer::TokenKind::EqualEqual => Ok(BinaryOperator::Equal),
             crate::lexer::TokenKind::NotEqual => Ok(BinaryOperator::NotEqual),
             crate::lexer::TokenKind::LessThan => Ok(BinaryOperator::LessThan),

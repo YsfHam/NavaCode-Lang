@@ -41,6 +41,20 @@ pub fn div(left: RuntimeValue, right: RuntimeValue) -> Result<RuntimeValue, Runt
     }
 }
 
+pub fn modulus(left: RuntimeValue, right: RuntimeValue) -> Result<RuntimeValue, RuntimeError> {
+    if let (RuntimeValue::Number(l), RuntimeValue::Number(r)) = (left, right) {
+        if r == 0 {
+            Err(RuntimeError::DivisionByZero)
+        }
+        else {
+            Ok(RuntimeValue::Number(l % r))
+        }
+    }
+    else {
+        Err(RuntimeError::InvalidOperation)
+    }
+}
+
 pub fn eq(left: RuntimeValue, right: RuntimeValue) -> Result<RuntimeValue, RuntimeError> {
     match (left, right) {
         (RuntimeValue::Number(l), RuntimeValue::Number(r)) => Ok(RuntimeValue::Bool(l == r)),

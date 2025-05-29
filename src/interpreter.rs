@@ -10,6 +10,7 @@ static BINARY_OPERATORS: &[(BinaryOperator, RuntimeBinaryOperator)] = &[
     (BinaryOperator::Subtract, builtin::sub),
     (BinaryOperator::Multiply, builtin::mul),
     (BinaryOperator::Divide, builtin::div),
+    (BinaryOperator::Modulus, builtin::modulus),
     (BinaryOperator::Equal, builtin::eq),
     (BinaryOperator::NotEqual, builtin::not_eq),
     (BinaryOperator::GreaterThan, builtin::gt),
