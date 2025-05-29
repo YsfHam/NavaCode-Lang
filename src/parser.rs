@@ -4,8 +4,8 @@ use crate::{ast::{expression::{BinaryOperator, Expression, UnaryOperator}, state
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RecoverMode {
-    RecoverFromMisplacedElseToken,
+enum ErrorRecoveryState {
+    RecoverFromBadBlock,
 }
 
 
@@ -18,14 +18,14 @@ static STATEMENT_START_TOKENS: &[TokenKind] = &[
 pub struct Parser<I: Iterator<Item = Token>> {
     tokens: Peekable<I>,
 
-    recover_mode: Option<RecoverMode>,
+    recovery_states: Vec<ErrorRecoveryState>,
 }
 
 impl<I: Iterator<Item = Token>> Parser<I> {
     pub fn new(tokens: I) -> Self {
         Parser {
             tokens: tokens.peekable(),
-            recover_mode: None,
+            recovery_states: Vec::new(),
         }
     }
 
@@ -52,17 +52,29 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(ast)
     }
 
+    fn push_recovery_state(&mut self, recovery_state: ErrorRecoveryState) {
+        self.recovery_states.push(recovery_state);
+    }
+
+    fn pop_recovery_state(&mut self) -> Option<ErrorRecoveryState> {
+        self.recovery_states.pop()
+    }
+
+    fn current_recovery_state(&self) -> Option<&ErrorRecoveryState> {
+        self.recovery_states.last()
+    }
+
     fn advance(&mut self) -> Token {
         self.tokens.next().unwrap()
     }
 
-    fn advance_if(&mut self, expected: &[TokenKind]) -> Option<Token> {
-        if expected.contains(&self.peek().kind) {
-            Some(self.advance())
-        } else {
-            None
-        }
-    }
+    // fn advance_if(&mut self, expected: &[TokenKind]) -> Option<Token> {
+    //     if expected.contains(&self.peek().kind) {
+    //         Some(self.advance())
+    //     } else {
+    //         None
+    //     }
+    // }
 
     fn peek(&mut self) -> &Token {
         self.tokens.peek().unwrap()
@@ -96,23 +108,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     }
 
-    fn parse_statement_guard(&mut self) -> TokenKind {
-        let next_token_kind = self.peek().kind;
-
-        if next_token_kind == TokenKind::EndKeyword && 
-        self.recover_mode.is_some_and(|mode| mode == RecoverMode::RecoverFromMisplacedElseToken) 
-        {
-            self.recover_mode = None; // Reset recover mode
-            self.advance();
-        }
-
-
-        self.peek().kind
-    }
-
 
     fn parse_statement(&mut self) -> Result<Option<Statement>, Diagnostic> {
-        let next_token_kind = self.parse_statement_guard();
+
+        let next_token_kind = self.peek().kind;
 
         if next_token_kind == TokenKind::EndOfFile {
             return Ok(None);
@@ -121,13 +120,27 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         match next_token_kind {
             TokenKind::LetKeyword => Ok(Some(self.parse_variable_declaration()?)),
             TokenKind::SetKeyword => Ok(Some(self.parse_variable_assignement()?)),
-            TokenKind::IfKeyword => Ok(Some(self.parse_if_statement()?)),
+            TokenKind::IfKeyword => 
+                Ok(Some(self.parse_if_statement().map_err(|diag| {
+                    self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock);
+                    diag
+                })?)),
 
 
             // Reporting errors
-            TokenKind::ElseKeyword => Err(
-                Diagnostic::unexpected_else_token(self.advance().position)
-            ),
+            TokenKind::ElseKeyword => {
+                self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock);
+                Err(
+                    Diagnostic::unexpected_else_token(self.advance().position)
+                )
+            }
+
+            TokenKind::EndKeyword if self.current_recovery_state() == Some(&ErrorRecoveryState::RecoverFromBadBlock) => {
+                println!("here");
+                self.pop_recovery_state();
+                self.advance();
+                self.parse_statement()
+            }
             TokenKind::EndKeyword => Err(
                 Diagnostic::unexpected_end_token(self.advance().position)
             ),
@@ -182,26 +195,18 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn parse_if_statement(&mut self) -> Result<Statement, Diagnostic> {
         let if_then_branch = self.parse_if_then_branch()?;
 
-
-        let end_token = self.advance_if(&[TokenKind::EndKeyword]);
-        if end_token.is_some() && self.peek().kind == TokenKind::ElseKeyword {
-            self.recover_mode = Some(RecoverMode::RecoverFromMisplacedElseToken);
-            return Err(Diagnostic::unexpected_else_after_end(self.advance().position));
-        }
-        
-        let else_block = if self.peek().kind == TokenKind::ElseKeyword {
+        let else_branch = if self.peek().kind == TokenKind::ElseKeyword {
             Some(self.parse_else_branch()?)
         }
-        else if end_token.is_none() {
-            return Err(Diagnostic::unexpected_token(vec![TokenKind::EndKeyword], self.peek().clone()));
-        }
         else {
+            self.expect(&[TokenKind::EndKeyword])?;
             None
-        };
+        }
+        .map(Box::new);
 
         Ok(Statement::IfStatement {
             if_then_branch,
-            else_branch: else_block.map(Box::new),
+            else_branch,
         })
     }
 
@@ -222,9 +227,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
         
         let else_branch = self.parse_statements_until(&[TokenKind::EndKeyword])?;
-        
         self.expect(&[TokenKind::EndKeyword])?;
-
         Ok(else_branch)
     }
 

@@ -4,17 +4,11 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-        let x be 1
-        let y be 1
-        let z be 0
-        
+        else
 
-        if x == 1 then
-            if y == 1 then
-                set z to 1
-            end
+        let x be 7
+
         end
-        let u be 0
     "#;
 
     println!("Starting compilation...");
@@ -28,6 +22,7 @@ fn main() {
         Ok(compilation_unit) => {
             println!("Compilation successful!");
             AstDebugPrinter::new().explore_ast(&compilation_unit.ast);
+            println!("Running code...");
             Interpreter::interpret(&compilation_unit.ast);
         },
         Err(e) => {
