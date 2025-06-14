@@ -4,20 +4,10 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-        let n be 29
-        let is_prime be false
+        let result be 0
 
-        let i be 2
-        let is_searching be true
-        while is_searching do
-            if i >= n then
-                set is_prime to true
-                set is_searching to false
-            else if n % i == 0 then
-                set is_searching to false
-            else
-                set i to i + 1
-            end
+        for i from 1 to step 2 do
+            set result to result + i
         end
     "#;
 

@@ -95,4 +95,26 @@ impl AstExplorer for AstDebugPrinter {
         
         self.indent_level -= 1;
     }
+    
+    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: Option<&crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+        println!("{}For Statement:", "  ".repeat(self.indent_level));
+        self.indent_level += 1;
+        println!("{}Variable: {}", "  ".repeat(self.indent_level), variable.value);
+        
+        println!("{}Start:", "  ".repeat(self.indent_level));
+        self.visit_expression(start);
+        
+        println!("{}End:", "  ".repeat(self.indent_level));
+        self.visit_expression(end);
+        
+        if let Some(step) = step {
+            println!("{}Step:", "  ".repeat(self.indent_level));
+            self.visit_expression(step);
+        }
+        
+        println!("{}Body:", "  ".repeat(self.indent_level));
+        self.visit_statement(body);
+        
+        self.indent_level -= 1;
+    }
 }

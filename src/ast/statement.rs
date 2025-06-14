@@ -23,6 +23,14 @@ pub enum Statement {
         statements: Vec<Statement>,
     },
     WhileStatement { condition: Expression, body: Box<Statement> },
+
+    ForStatement {
+        variable: Token,
+        start: Expression,
+        end: Expression,
+        step: Option<Expression>,
+        body: Box<Statement>,
+    }
 }
 
 #[derive(Debug)]

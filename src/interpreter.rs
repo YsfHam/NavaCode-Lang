@@ -66,7 +66,7 @@ impl RuntimeScope {
     }
 
 
-    fn register_variable(&mut self, name: String, value: RuntimeValue) {
+    fn set_variable(&mut self, name: String, value: RuntimeValue) {
         self.variables.insert(name, value);
     }
 
@@ -109,7 +109,6 @@ impl Interpreter {
         let mut interpreter = Self::new();
 
         let rust_backtrace = env!("RUST_BACKTRACE");
-        println!("rust backtrace level {}", rust_backtrace);
 
         unsafe {std::env::set_var("RUST_BACKTRACE", "0")};
         interpreter.explore_ast(ast);
@@ -134,28 +133,40 @@ impl Interpreter {
     }
 
     fn register_variable(&mut self, name: String, value: RuntimeValue) {
-        let scope = self.scopes
-            .iter_mut()
-            .rev()
-            .find(|scope| scope.variables.contains_key(&name));
-
-        if let Some(scope) = scope {
-            scope.register_variable(name, value);
-        }
-        else {
-            self.scopes.last_mut().unwrap().register_variable(name, value);
-        }
+        
+        self.scopes.last_mut().unwrap().set_variable(name, value);
 
     }
 
-    fn get_variable_mut(&self, name: &str) -> Option<&RuntimeValue> {
-        self.scopes
+    fn set_variable_value(&mut self, name: String, value: RuntimeValue) {
+        if let Some(scope) = 
+            self.scopes
+                .iter_mut()
+                .rev()
+                .find(|s| s.get_variable(&name).is_some()) 
+        {
+            scope.set_variable(name, value);
+        } 
+        else {
+            self.report_error(RuntimeError::VariableNotFound(name));
+        }
+    }
+
+    fn get_variable(&self, name: &str) -> &RuntimeValue {
+        let value = self.scopes
             .iter()
             .rev()
-            .find_map(|scope| scope.get_variable(name))
+            .find_map(|scope| scope.get_variable(name));
+
+        match value {
+            Some(v) => v,
+            None => {
+                self.report_error(RuntimeError::VariableNotFound(name.to_string()));
+            }
+        }
     }
 
-    fn report_error(&mut self, error: RuntimeError) {
+    fn report_error(&self, error: RuntimeError) -> ! {
         match error {
             RuntimeError::VariableNotFound(name) => panic!("Variable not found: {}", name),
             RuntimeError::DivisionByZero => panic!("Error: Division by zero"),
@@ -181,14 +192,10 @@ impl AstExplorer for Interpreter {
     }
 
     fn visit_variable_assignement(&mut self, name: &crate::lexer::Token, value: &crate::ast::expression::Expression) {
-        if self.get_variable_mut(&name.value).is_none() {
-            self.report_error(RuntimeError::VariableNotFound(name.value.clone()));
-        }
-        else {
-            self.visit_expression(value);
-            let expr_value = self.get_accumulator_value();
-            self.register_variable(name.value.clone(), expr_value);
-        }
+
+        self.visit_expression(value);
+        let expr_value = self.get_accumulator_value();
+        self.set_variable_value(name.value.clone(), expr_value);
     }
 
 
@@ -197,11 +204,7 @@ impl AstExplorer for Interpreter {
     }
 
     fn visit_variable_expression(&mut self, name: &crate::lexer::Token) {
-        if let Some(value) = self.get_variable_mut(&name.value) {
-            self.accumulator = Some(value.clone());
-        } else {
-            self.report_error(RuntimeError::VariableNotFound(name.value.clone()));
-        }
+        self.accumulator = Some(self.get_variable(&name.value).clone());
     }
 
     fn visit_binary_operation(&mut self, left: &crate::ast::expression::Expression, operator: &crate::ast::expression::BinaryOperator, right: &crate::ast::expression::Expression) {
@@ -285,5 +288,49 @@ impl AstExplorer for Interpreter {
                 }
             }
         }
+    }
+    
+    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: Option<&crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+        self.visit_expression(start);
+        let start_value = self.get_accumulator_value();
+
+        self.visit_expression(end);
+        let end_value = self.get_accumulator_value();
+
+        let step_value = if let Some(step_expr) = step {
+            self.visit_expression(step_expr);
+            self.get_accumulator_value()
+        } else {
+            RuntimeValue::Number(1) // Default step value
+        };
+
+        self.push_scope();
+        self.register_variable(variable.value.clone(), start_value);
+
+        loop {
+            let current_value = self.get_variable(&variable.value);
+            let exit = builtin::gt(current_value.clone(), end_value.clone());
+            match exit {
+                Ok(RuntimeValue::Bool(true)) => {
+                    break;
+                },
+
+                Err(err) => {
+                    self.report_error(err);
+                }
+                _ => {}
+            }
+
+            self.visit_statement(body);
+
+            let current_value = self.get_variable(&variable.value);
+            let new_value = match builtin::add(current_value.clone(), step_value.clone()) {
+                Ok(value) => value, 
+                Err(err) => self.report_error(err)
+            };
+            self.set_variable_value(variable.value.clone(), new_value);
+        }
+
+        self.pop_scope();
     }
 }

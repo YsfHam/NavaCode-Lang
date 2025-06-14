@@ -21,6 +21,9 @@ pub enum TokenKind {
     FalseKeyword,
     WhileKeyword,
     DoKeyword,
+    ForKeyword,
+    FromKeyword,
+    StepKeyword,
 
     // Operators
     Plus,
@@ -82,6 +85,9 @@ impl fmt::Display for TokenKind {
             TokenKind::WhileKeyword => "while",
             TokenKind::DoKeyword => "do",
             TokenKind::Percent => "%",
+            TokenKind::ForKeyword => "for",
+            TokenKind::FromKeyword => "from",
+            TokenKind::StepKeyword => "step",
         };
         write!(f, "{s}")
     }
@@ -350,6 +356,9 @@ impl<'a> Lexer<'a> {
             "false" => TokenKind::FalseKeyword,
             "while" => TokenKind::WhileKeyword,
             "do" => TokenKind::DoKeyword,
+            "for" => TokenKind::ForKeyword,
+            "from" => TokenKind::FromKeyword,
+            "step" => TokenKind::StepKeyword,
             _ => TokenKind::Identifier,
         }
     }

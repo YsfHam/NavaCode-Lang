@@ -7,6 +7,7 @@ use crate::{ast::{expression::{BinaryOperator, Expression, UnaryOperator}, state
 enum BlockType {
     IfBlock,
     WhileBlock,
+    ForBlock,
     ElseBlock,
 }
 
@@ -22,6 +23,7 @@ static RECOVERY_END_POINTS: &[TokenKind] = &[
     TokenKind::SetKeyword,
     TokenKind::IfKeyword,
     TokenKind::WhileKeyword,
+    TokenKind::ForKeyword,
     TokenKind::EndKeyword,
     TokenKind::ElseKeyword,
 ];
@@ -148,6 +150,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                     diag
                 })?)),
 
+             TokenKind::ForKeyword => 
+                Ok(Some(self.parse_for_statement().map_err(|diag| {
+                    self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::ForBlock));
+                    diag
+                })?)),
 
             
             // Reporting errors
@@ -282,7 +289,32 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         })
     }
 
-    
+    fn parse_for_statement(&mut self) -> Result<Statement, Diagnostic> {
+        self.expect(&[TokenKind::ForKeyword])?;
+        let variable = self.expect(&[TokenKind::Identifier])?;
+        self.expect(&[TokenKind::FromKeyword])?;
+        let start = self.parse_expression()?;
+        self.expect(&[TokenKind::ToKeyword])?;
+        let end = self.parse_expression()?;
+        let step = if self.peek().kind == TokenKind::StepKeyword {
+            self.advance(); // consume the 'step' keyword
+            Some(self.parse_expression()?)
+        } else {
+            None
+        };
+
+        self.expect(&[TokenKind::DoKeyword])?;
+        let body = self.parse_statements_until(&[TokenKind::EndKeyword])?;
+        self.expect(&[TokenKind::EndKeyword])?;
+
+        Ok(Statement::ForStatement {
+            variable,
+            start,
+            end,
+            step,
+            body: Box::new(body),
+        })
+    }
 
     fn parse_expression(&mut self) -> Result<Expression, Diagnostic> {
         self.parse_expression_with_precedence(0)
