@@ -12,26 +12,36 @@ enum DiagnosticError {
     UnexpectedElseAfterEnd,
     UnexpectedEndToken,
     UnexpectedElseToken,
+
+    VariableRedefinition {
+        identifier: String,
+    },
+
+    UndefinedVariable {
+        identifier: String,
+    }
 }
 
 impl fmt::Display for DiagnosticError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DiagnosticError::UnexpectedToken { expected, found } => {
-                        let expected_str = 
-                            expected.iter()
-                            .map(|k| format!("{}", k))
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        write!(f, "Unexpected token '{}'. expected one of [{}]", found, expected_str)
-                    }
+                                let expected_str = 
+                                    expected.iter()
+                                    .map(|k| format!("{}", k))
+                                    .collect::<Vec<_>>()
+                                    .join(", ");
+                                write!(f, "Unexpected token '{}'. expected one of [{}]", found, expected_str)
+                            }
             DiagnosticError::UnexpectedElseAfterEnd => {
-                        write!(f, "Unexpected 'else' after 'end'")
-                    }
+                                write!(f, "Unexpected 'else' after 'end'")
+                            }
             DiagnosticError::UnexpectedEndToken => {
-                        write!(f, "'end' present without a matching block")
-                    }
+                                write!(f, "'end' present without a matching block")
+                            }
             DiagnosticError::UnexpectedElseToken => write!(f, "'else' present without a matching 'if'"),
+            DiagnosticError::VariableRedefinition { identifier } => write!(f, "Variable '{}' is already defined in the current scope", identifier),
+            DiagnosticError::UndefinedVariable { identifier } => write!(f, "Variable '{}' is not defined", identifier),
         }
     }
 }
@@ -76,6 +86,20 @@ impl Diagnostic {
         Self {
             diagnostic_type: DiagnosticType::Error(DiagnosticError::UnexpectedElseToken),
             position,
+        }
+    }
+
+    pub fn variable_redifinition(variable: Token) -> Self {
+        Self {
+            diagnostic_type: DiagnosticType::Error(DiagnosticError::VariableRedefinition { identifier: variable.value }),
+            position: variable.position,
+        }
+    }
+
+    pub fn undefined_variable(variable: Token) -> Self {
+        Self {
+            diagnostic_type: DiagnosticType::Error(DiagnosticError::UndefinedVariable { identifier: variable.value }),
+            position: variable.position,
         }
     }
 }

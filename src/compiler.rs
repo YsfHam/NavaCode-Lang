@@ -1,7 +1,8 @@
-use crate::{ast::Ast, diagnostic::Diagnostics, lexer::Lexer, parser::Parser};
+use crate::{ast::Ast, diagnostic::Diagnostics, lexer::Lexer, parser::Parser, resolver::Resolver, symbols_table::SymbolsTable};
 
 pub struct CompilationUnit {
-    pub ast: Ast
+    pub ast: Ast,
+    pub symbols_table: SymbolsTable,
 }
 
 pub struct SourceCode {
@@ -33,9 +34,14 @@ impl Compiler {
         let parser = Parser::new(lexer);
         
         println!("Parsing tokens...");
+        let ast = parser.parse()?;
+
+        println!("Resolving symbols...");
+        let symbols_table = Resolver::new().resolve(&ast)?;
 
         Ok(CompilationUnit {
-            ast: parser.parse()?
+            ast,
+            symbols_table,
         })
     }
 }

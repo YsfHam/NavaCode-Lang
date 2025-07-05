@@ -6,8 +6,8 @@ fn main() {
     let input = r#"
         let result be 0
 
-        for i from 1 to step 2 do
-            set result to result + i
+        for i from 1 to 10 do 
+            set result to result + x
         end
     "#;
 
