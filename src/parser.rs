@@ -9,6 +9,7 @@ enum BlockType {
     WhileBlock,
     ForBlock,
     ElseBlock,
+    FunctionBlock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,6 +27,7 @@ static RECOVERY_END_POINTS: &[TokenKind] = &[
     TokenKind::ForKeyword,
     TokenKind::EndKeyword,
     TokenKind::ElseKeyword,
+    TokenKind::DefineKeyword
 ];
 
 pub struct Parser<I: Iterator<Item = Token>> {
@@ -137,7 +139,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
         match next_token_kind {
             TokenKind::LetKeyword => Ok(Some(self.parse_variable_declaration()?)),
+
             TokenKind::SetKeyword => Ok(Some(self.parse_variable_assignement()?)),
+            
             TokenKind::IfKeyword => 
                 Ok(Some(self.parse_if_statement().map_err(|diag| {
                     self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::IfBlock));
@@ -150,12 +154,17 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                     diag
                 })?)),
 
-             TokenKind::ForKeyword => 
+            TokenKind::ForKeyword => 
                 Ok(Some(self.parse_for_statement().map_err(|diag| {
                     self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::ForBlock));
                     diag
                 })?)),
-
+            
+            TokenKind::DefineKeyword => 
+                Ok(Some(self.parse_function_definition().map_err(|diag| {
+                    self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::FunctionBlock));
+                    diag
+                })?)),
             
             // Reporting errors
             TokenKind::ElseKeyword 
@@ -211,6 +220,24 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
         
         Ok(Statement::BlockStatement { statements })
+    }
+
+    fn parse_tokens_list(&mut self, target_token_type: TokenKind, separator: Option<TokenKind>) -> Result<Vec<Token>, Diagnostic> {
+        let mut tokens = vec![self.expect(&[target_token_type])?];
+
+        loop {
+            if separator.is_some_and(|sep| self.peek().kind != sep) {
+                break;
+            }
+
+            if separator.is_some() {
+                self.advance();
+            }
+
+            tokens.push(self.expect(&[target_token_type])?);
+        }
+
+        Ok(tokens)
     }
 
     fn parse_variable_declaration(&mut self) -> Result<Statement, Diagnostic> {
@@ -312,6 +339,30 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             start,
             end,
             step,
+            body: Box::new(body),
+        })
+    }
+
+    fn parse_function_definition(&mut self) -> Result<Statement, Diagnostic> {
+        self.expect(&[TokenKind::DefineKeyword])?;
+        self.expect(&[TokenKind::FunctionKeyword])?;
+        let function_name = self.expect(&[TokenKind::Identifier])?;
+
+        let arguments = if self.peek().kind == TokenKind::WithKeyword {
+            self.advance();
+            self.parse_tokens_list(TokenKind::Identifier, Some(TokenKind::Comma))?
+        }
+        else {
+            Vec::new()
+        };
+
+        self.expect(&[TokenKind::AsKeyword])?;
+        let body = self.parse_statements_until(&[TokenKind::EndKeyword])?;
+        self.expect(&[TokenKind::EndKeyword])?;
+
+        Ok(Statement::FunctionDefinition {
+            name: function_name,
+            arguments,
             body: Box::new(body),
         })
     }

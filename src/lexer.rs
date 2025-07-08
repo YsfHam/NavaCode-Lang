@@ -24,6 +24,10 @@ pub enum TokenKind {
     ForKeyword,
     FromKeyword,
     StepKeyword,
+    DefineKeyword,
+    FunctionKeyword,
+    WithKeyword,
+    AsKeyword,
 
     // Operators
     Plus,
@@ -38,9 +42,10 @@ pub enum TokenKind {
     LessThanOrEqual,
     GreaterThanOrEqual,
     Bang,
-
+    
     LeftParen,
     RightParen,
+    Comma,
 
     Identifier,
 
@@ -88,6 +93,11 @@ impl fmt::Display for TokenKind {
             TokenKind::ForKeyword => "for",
             TokenKind::FromKeyword => "from",
             TokenKind::StepKeyword => "step",
+            TokenKind::DefineKeyword => "define",
+            TokenKind::FunctionKeyword => "function",
+            TokenKind::WithKeyword => "with",
+            TokenKind::AsKeyword => "as",
+            TokenKind::Comma => ",",
         };
         write!(f, "{s}")
     }
@@ -119,6 +129,7 @@ static OPERATORS: &[(&str, TokenKind)] = &[
     ("<=", TokenKind::LessThanOrEqual),
     (">=", TokenKind::GreaterThanOrEqual),
     ("!", TokenKind::Bang),
+    ("%", TokenKind::Percent),
     ("%", TokenKind::Percent),
 ];
 
@@ -334,6 +345,7 @@ impl<'a> Lexer<'a> {
         match c {
             '(' => Some(TokenKind::LeftParen),
             ')' => Some(TokenKind::RightParen),
+            ',' => Some(TokenKind::Comma),
             _ => None,
         }
     }
@@ -359,6 +371,10 @@ impl<'a> Lexer<'a> {
             "for" => TokenKind::ForKeyword,
             "from" => TokenKind::FromKeyword,
             "step" => TokenKind::StepKeyword,
+            "define" => TokenKind::DefineKeyword,
+            "function" => TokenKind::FunctionKeyword,
+            "with" => TokenKind::WithKeyword,
+            "as" => TokenKind::AsKeyword,
             _ => TokenKind::Identifier,
         }
     }

@@ -30,6 +30,12 @@ pub enum Statement {
         end: Expression,
         step: Option<Expression>,
         body: Box<Statement>,
+    },
+
+    FunctionDefinition {
+        name: Token,
+        arguments: Vec<Token>,
+        body: Box<Statement>,
     }
 }
 

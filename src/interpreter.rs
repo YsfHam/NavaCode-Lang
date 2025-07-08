@@ -333,4 +333,8 @@ impl AstExplorer for Interpreter {
 
         self.pop_scope();
     }
+    
+    fn visit_function_definition(&mut self, _name: &crate::lexer::Token, _arguments: &[crate::lexer::Token], _body: &crate::ast::statement::Statement) {
+        
+    }
 }

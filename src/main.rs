@@ -4,10 +4,8 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
-        let result be 0
-
-        for i from 1 to 10 do 
-            set result to result + x
+        define function add with a, b as
+            let result be a + b
         end
     "#;
 

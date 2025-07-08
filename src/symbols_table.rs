@@ -2,12 +2,14 @@ use std::collections::HashMap;
 
 pub struct SymbolsTable {
     scopes: Vec<Scope>,
+    functions: HashMap<String, FunctionSymbol>,
 }
 
 impl SymbolsTable {
     pub fn new() -> Self {
         SymbolsTable {
             scopes: vec![Scope::new_global()],
+            functions: HashMap::new(),
         }
     }
 
@@ -21,12 +23,25 @@ impl SymbolsTable {
         self.scopes[current_scope_id.0].parent.expect("Cannot exit global scope")
     }
 
-    pub fn define_symbol(&mut self, symbol: Symbol, current_scope_id: ScopeId) {
-        let current_scope = &mut self.scopes[current_scope_id.0];
-        current_scope.add_symbol(symbol)
+    pub fn define_variable(&mut self, symbol: VariableSymbol, current_scope_id: ScopeId) {
+        let scope = &mut self.scopes[current_scope_id.0];
+        scope.add_variable(symbol);
     }
 
-    pub fn lookup(&self, identifier: &str, current_scope_id: ScopeId) -> Option<&Symbol> {
+    pub fn define_function(&mut self, symbol: FunctionSymbol) {
+        self.functions.insert(symbol.identifier.clone(), symbol);
+    }
+
+    pub fn lookup_variable_in_scope_only(&self, identifier: &str, current_scope_id: ScopeId) -> Option<&VariableSymbol> {
+        let scope = &self.scopes[current_scope_id.0];
+        scope.lookup(identifier)
+    }
+
+    pub fn lookup_function(&self, identifier: &str) -> Option<&FunctionSymbol> {
+        self.functions.get(identifier)
+    }
+
+    pub fn lookup_variable(&self, identifier: &str, current_scope_id: ScopeId) -> Option<&VariableSymbol> {
         let mut current_lookup_scope_id = Some(current_scope_id);
 
         while let Some(scope_id) = current_lookup_scope_id {
@@ -39,46 +54,47 @@ impl SymbolsTable {
 
         None
     }
-
-    pub fn lookup_in_scope_only(&self, identifier: &str, current_scope_id: ScopeId) -> Option<&Symbol> {
-        let scope = &self.scopes[current_scope_id.0];
-        scope.lookup(identifier)
-    }
 }
 
-pub struct Symbol {
+
+pub struct VariableSymbol {
     pub identifier: String,
-
 }
+
+pub struct FunctionSymbol {
+    pub identifier: String,
+    pub parameters: Vec<String>,
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ScopeId(pub usize);
 
 struct Scope {
-    symbols: HashMap<String, Symbol>,
+    variables: HashMap<String, VariableSymbol>,
     parent: Option<ScopeId>,
 }
 
 impl Scope {
     fn new(parent: ScopeId) -> Self {
         Scope {
-            symbols: HashMap::new(),
+            variables: HashMap::new(),
             parent: Some(parent),
         }
     }
 
     fn new_global() -> Self {
         Scope {
-            symbols: HashMap::new(),
+            variables: HashMap::new(),
             parent: None,
         }
     }
 
-    fn add_symbol(&mut self, symbol: Symbol) {
-        self.symbols.insert(symbol.identifier.clone(), symbol);
+    fn add_variable(&mut self, symbol: VariableSymbol) {
+        self.variables.insert(symbol.identifier.clone(), symbol);
     }
 
-    pub fn lookup(&self, identifier: &str) -> Option<&Symbol> {
-        self.symbols.get(identifier)
+    pub fn lookup(&self, identifier: &str) -> Option<&VariableSymbol> {
+        self.variables.get(identifier)
     }
 }

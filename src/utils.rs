@@ -117,4 +117,23 @@ impl AstExplorer for AstDebugPrinter {
         
         self.indent_level -= 1;
     }
+    
+    fn visit_function_definition(&mut self, name: &crate::lexer::Token, arguments: &[crate::lexer::Token], body: &crate::ast::statement::Statement) {
+        println!("{}Function Definition: {}", "  ".repeat(self.indent_level), name.value);
+        self.indent_level += 1;
+        
+        if !arguments.is_empty() {
+            println!("{}Arguments:", "  ".repeat(self.indent_level));
+            for arg in arguments {
+                println!("{}- {}", "  ".repeat(self.indent_level + 1), arg.value);
+            }
+        } else {
+            println!("{}No Arguments", "  ".repeat(self.indent_level));
+        }
+        
+        println!("{}Body:", "  ".repeat(self.indent_level));
+        self.visit_statement(body);
+        
+        self.indent_level -= 1;
+    }
 }

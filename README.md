@@ -144,7 +144,7 @@ number           ::= [0-9]+(\.[0-9]+)?
   - [x] Add `for` loops
 
 3. **Functions**
-  - [ ] Support function definitions
+  - [x] Support function definitions
   - [ ] Enable function calls with arguments
   - [ ] Implement return values
 
