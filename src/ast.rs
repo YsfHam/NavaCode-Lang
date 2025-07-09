@@ -38,25 +38,26 @@ pub trait AstExplorer {
     fn visit_statement(&mut self, statement: &Statement) {
         match statement {
             Statement::VariableDeclaration { name, value } => {
-                                                self.visit_variable_declaration(name, value);
-                                            }
+                                                        self.visit_variable_declaration(name, value);
+                                                    }
             Statement::VariableAssignment { name, value } => {
-                                                self.visit_variable_assignement(name, value);
-                                            }
+                                                        self.visit_variable_assignement(name, value);
+                                                    }
             Statement::IfStatement { if_then_branch: if_then_block, else_branch } 
-                                        => self.visit_if_statement(&if_then_block.condition, &if_then_block.then_branch, else_branch.as_ref().map(|b| &**b)),
+                                                => self.visit_if_statement(&if_then_block.condition, &if_then_block.then_branch, else_branch.as_ref().map(|b| &**b)),
             Statement::BlockStatement { statements } => {
-                                        self.block_statement_on_enter();
-                                        statements.iter().for_each(|s: &Statement| self.visit_statement(s));
-                                        self.block_statement_on_exit();
-                                    }
+                                                self.block_statement_on_enter();
+                                                statements.iter().for_each(|s: &Statement| self.visit_statement(s));
+                                                self.block_statement_on_exit();
+                                            }
             Statement::WhileStatement { condition, body } => 
-                                    self.visit_while_statement(condition, body),
+                                            self.visit_while_statement(condition, body),
             Statement::ForStatement { variable, start, end, step, body } => 
-                        self.visit_for_statement(variable, start, end, step.as_ref(), body),
-            
+                                self.visit_for_statement(variable, start, end, step.as_ref(), body),
             Statement::FunctionDefinition { name, arguments, body } => 
-                        self.visit_function_definition(name, arguments, body)
+                                self.visit_function_definition(name, arguments, body),
+            Statement::FunctionCall(function_call_data) =>
+                                self.visit_function_call(&function_call_data.function_name, &function_call_data.arguments),
         }
     }
 
@@ -66,6 +67,7 @@ pub trait AstExplorer {
     fn visit_while_statement(&mut self, condition: &Expression, body: &Statement);
     fn visit_for_statement(&mut self, variable: &Token, start: &Expression, end: &Expression, step: Option<&Expression>, body: &Statement);
     fn visit_function_definition(&mut self, name: &Token, arguments: &[Token], body: &Statement);
+    fn visit_function_call(&mut self, function_name: &Token, arguments: &[Expression]);
 
 
     fn block_statement_on_enter(&mut self);
@@ -78,11 +80,12 @@ pub trait AstExplorer {
             Expression::Boolean(value) => self.visit_boolean_expression(*value),
             Expression::Variable(name) => self.visit_variable_expression(name),
             Expression::BinaryOperation { left, operator, right } => 
-                            self.visit_binary_operation(left, operator, right),
+                                    self.visit_binary_operation(left, operator, right),
             Expression::UnaryOperation { operator, operand } =>
-                            self.visit_unary_operation(operator, operand),
+                                    self.visit_unary_operation(operator, operand),
             Expression::Grouped(expression) => self.visit_expression(expression),
-                    }
+            Expression::FunctionCall(function_call_data) => self.visit_function_call(&function_call_data.function_name, &function_call_data.arguments),
+        }
     }
     
     fn visit_number_expression(&mut self, value: i64);

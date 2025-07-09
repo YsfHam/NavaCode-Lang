@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{expression::{BinaryOperator, UnaryOperator}, Ast, AstExplorer};
+use crate::ast::{expression::{BinaryOperator, UnaryOperator}, statement::Statement, Ast, AstExplorer};
 
 mod builtin;
 
@@ -89,24 +89,34 @@ enum RuntimeError {
     InvalidCondition,
 }
 
+#[derive(Clone)]
+struct FunctionInfo {
+    parameters: Vec<String>,
+    body: Statement,
+}
+
 
 pub struct Interpreter {
     accumulator: Option<RuntimeValue>,
     scopes: Vec<RuntimeScope>,
     dispatcher: RuntimeFunctionsDispatcher,
+    functions: HashMap<String, FunctionInfo>,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Interpreter {
             accumulator: None,
             scopes: vec![RuntimeScope::new()],
             dispatcher: RuntimeFunctionsDispatcher::new(),
+            functions: HashMap::new(),
         }
     }
 
     pub fn interpret(ast: &Ast) {
         let mut interpreter = Self::new();
+
+        interpreter.collect_functions(ast);
 
         let rust_backtrace = env!("RUST_BACKTRACE");
 
@@ -126,6 +136,34 @@ impl Interpreter {
                 RuntimeValue::Bool(b) => println!("{}: {}", name, b),
             }
         }
+    }
+
+    fn collect_functions(&mut self, ast: &Ast) {
+        for statement in ast.statements() {
+            if let Statement::FunctionDefinition { name, arguments, body } = statement {
+                let function_info = FunctionInfo {
+                    parameters: arguments.iter().map(|arg| arg.value.clone()).collect(),
+                    body: *body.clone(),
+                };
+                self.functions.insert(name.value.clone(), function_info);
+            }
+        }
+
+    }
+
+    fn call_function(&mut self, function_info: FunctionInfo, arguments: &[crate::ast::expression::Expression]) {
+        
+        self.push_scope();
+
+        for (param, arg) in function_info.parameters.iter().zip(arguments) {
+            self.visit_expression(arg);
+            let value = self.get_accumulator_value();
+            self.register_variable(param.clone(), value);
+        }
+
+        self.visit_statement(&function_info.body);
+
+        self.pop_scope();
     }
 
     fn get_accumulator_value(&mut self) -> RuntimeValue {
@@ -335,6 +373,11 @@ impl AstExplorer for Interpreter {
     }
     
     fn visit_function_definition(&mut self, _name: &crate::lexer::Token, _arguments: &[crate::lexer::Token], _body: &crate::ast::statement::Statement) {
-        
+    }
+    fn visit_function_call(&mut self, function_name: &crate::lexer::Token, arguments: &[crate::ast::expression::Expression]) {
+        if let Some(function_info) = self.functions.get(&function_name.value) {
+            let function_info = function_info.clone();
+            self.call_function(function_info, arguments);
+        }
     }
 }

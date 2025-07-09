@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq)] // Derive Debug and PartialEq for Expression to allow test assertions
+#[derive(Debug, PartialEq, Clone)] // Derive Debug and PartialEq for Expression to allow test assertions
 pub enum Expression {
     Number(i64),
     Boolean(bool),
@@ -19,6 +19,14 @@ pub enum Expression {
     },
 
     Grouped(Box<Expression>),
+
+    FunctionCall(FunctionCallData),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct FunctionCallData {
+    pub function_name: Token,
+    pub arguments: Vec<Expression>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

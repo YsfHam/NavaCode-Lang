@@ -145,7 +145,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 
 3. **Functions**
   - [x] Support function definitions
-  - [ ] Enable function calls with arguments
+  - [x] Enable function calls with arguments
   - [ ] Implement return values
 
 4. **Standard Input/Output**

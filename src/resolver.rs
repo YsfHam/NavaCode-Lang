@@ -127,5 +127,19 @@ impl AstExplorer for Resolver {
         self.visit_statement(body);
         self.current_scope_id = self.symbols_table.exit_scope(self.current_scope_id);
     }
+    
+    fn visit_function_call(&mut self, function_name: &crate::lexer::Token, arguments: &[crate::ast::expression::Expression]) {
+        if let Some(function_symbol) = self.symbols_table.lookup_function(&function_name.value) {
+            if function_symbol.parameters.len() != arguments.len() {
+                self.diagnostics.report(Diagnostic::function_arguments_mismatch(function_name.clone(), function_symbol.parameters.len(), arguments.len()));
+            }
+        } else {
+            self.diagnostics.report(Diagnostic::undefined_function(function_name.clone()));
+        }
+
+        for argument in arguments {
+            self.visit_expression(argument);
+        }
+    }
 }
 

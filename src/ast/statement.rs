@@ -1,8 +1,8 @@
-use crate::lexer::Token;
+use crate::{ast::expression::FunctionCallData, lexer::Token};
 
 use super::expression::Expression;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     VariableDeclaration {
         name: Token,
@@ -36,10 +36,12 @@ pub enum Statement {
         name: Token,
         arguments: Vec<Token>,
         body: Box<Statement>,
-    }
+    },
+
+    FunctionCall(FunctionCallData),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfThenBranch {
     pub condition: Expression,
     pub then_branch: Box<Statement>,

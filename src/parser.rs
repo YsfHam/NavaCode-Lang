@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use crate::{ast::{expression::{BinaryOperator, Expression, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}};
+use crate::{ast::{expression::{BinaryOperator, Expression, FunctionCallData, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}};
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,6 +165,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                     self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::FunctionBlock));
                     diag
                 })?)),
+
+            TokenKind::Identifier =>
+                Ok(Some(self.parse_function_call().map(|data| Statement::FunctionCall(data))?)),
             
             // Reporting errors
             TokenKind::ElseKeyword 
@@ -367,6 +370,40 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         })
     }
 
+    fn parse_function_call(&mut self) -> Result<FunctionCallData, Diagnostic> {
+        let function_name = self.expect(&[TokenKind::Identifier])?;
+
+        let arguments = self.parse_function_call_arguments()?;
+
+        Ok(FunctionCallData { function_name, arguments })
+    }
+
+    fn parse_function_call_arguments_list(&mut self) -> Result<Vec<Expression>, Diagnostic> {
+
+        let mut arguments = vec![self.parse_expression()?];
+
+        while self.peek().kind == TokenKind::Comma {
+            self.advance(); // consume the comma
+            arguments.push(self.parse_expression()?);
+        }
+
+        Ok(arguments)
+    }
+
+    fn parse_function_call_arguments(&mut self) -> Result<Vec<Expression>, Diagnostic> {
+        self.expect(&[TokenKind::LeftParen])?;
+
+        let arguments = if self.peek().kind == TokenKind::RightParen {
+            Vec::new()
+        }
+        else {
+            self.parse_function_call_arguments_list()?
+        };
+        self.expect(&[TokenKind::RightParen])?;
+
+        Ok(arguments)
+    }
+
     fn parse_expression(&mut self) -> Result<Expression, Diagnostic> {
         self.parse_expression_with_precedence(0)
     }
@@ -448,7 +485,16 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             }
             TokenKind::Identifier => {
                 let identifier_token = self.advance();
-                Ok(Expression::Variable(identifier_token))
+                if self.peek().kind != TokenKind::LeftParen {
+                    Ok(Expression::Variable(identifier_token))
+                }
+                else {
+                   let arguments = self.parse_function_call_arguments()?;
+                    Ok(Expression::FunctionCall(FunctionCallData {
+                        function_name: identifier_token,
+                        arguments,
+                    }))
+                }
             }
             _ => {
                 Err(Diagnostic::unexpected_token(
@@ -458,6 +504,4 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             }
         }
     }
-
-    
 }

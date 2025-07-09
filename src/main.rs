@@ -4,9 +4,13 @@ use navacodelang::{ast::AstExplorer, compiler::{Compiler, SourceCode}, interpret
 fn main() {
 
     let input = r#"
+
+        let result be 0
         define function add with a, b as
-            let result be a + b
+            set result to a + b
         end
+
+        add(5, 10)
     "#;
 
     println!("Starting compilation...");
