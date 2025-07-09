@@ -96,7 +96,7 @@ impl AstExplorer for AstDebugPrinter {
         self.indent_level -= 1;
     }
     
-    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: Option<&crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: &Option<crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
         println!("{}For Statement:", "  ".repeat(self.indent_level));
         self.indent_level += 1;
         println!("{}Variable: {}", "  ".repeat(self.indent_level), variable.value);
@@ -148,6 +148,20 @@ impl AstExplorer for AstDebugPrinter {
             }
         } else {
             println!("{}No Arguments", "  ".repeat(self.indent_level));
+        }
+        
+        self.indent_level -= 1;
+    }
+
+    fn visit_return_statement(&mut self, _position: &crate::lexer::TokenPosition, expression: &Option<crate::ast::expression::Expression>) {
+        println!("{}Return Statement:", "  ".repeat(self.indent_level));
+        self.indent_level += 1;
+        
+        if let Some(expr) = expression {
+            println!("{}Expression:", "  ".repeat(self.indent_level));
+            self.visit_expression(expr);
+        } else {
+            println!("{}No Expression", "  ".repeat(self.indent_level));
         }
         
         self.indent_level -= 1;

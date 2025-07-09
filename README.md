@@ -83,6 +83,57 @@ let b be 4 / (2 - 1)
 let c be not (x and y)
 ```
 
+### Function Definition and Calls
+```nava
+define function add with a, b as
+    return (a + b)
+end
+
+define function factorial with n as
+    if n <= 1 then
+        return (1)
+    else
+        return (n * factorial(n - 1))
+    end
+end
+
+let result be add(5, 7)
+let fact5 be factorial(5)
+```
+
+### If/Else Statements
+```nava
+if x > 0 then
+    set y to 1
+else if x < 0 then
+    set y to -1
+else
+    set y to 0
+end
+```
+
+### While Loops
+```nava
+let n be 5
+let fact be 1
+while n > 1 then
+    set fact to fact * n
+    set n to n - 1
+end
+```
+
+### For Loops
+```nava
+let sum be 0
+for i from 1 to 5 then
+    set sum to sum + i
+end
+
+for i from 10 to 1 step -2 then
+    set sum to sum + i
+end
+```
+
 ---
 
 ## Technical Overview
@@ -90,32 +141,45 @@ let c be not (x and y)
 ### Parser Components
 - **Lexer:** Converts source code into a stream of tokens (numbers, identifiers, operators, keywords, etc.).
 - **Parser:** Uses recursive descent and operator precedence parsing to build an Abstract Syntax Tree (AST) from the token stream.
-- **AST:** Represents the structure of the program (variable declarations, expressions, etc.).
-- **Error Handling:** Robust error reporting and recovery for invalid syntax.
+- **AST:** Represents the structure of the program (variable declarations, expressions, function definitions/calls, etc.).
+- **Error Handling:** Robust error reporting and recovery for invalid syntax and semantic errors (e.g., undefined variables, return outside function, function argument mismatch).
+- **Semantic Analyzer (Resolver):** Checks for variable/function definitions, scope, and correct use of return statements.
+- **Interpreter:** Executes the AST, supports variables, arithmetic, logic, control flow, and function calls/returns.
 
 ### Grammar (EBNF)
 ```
 program         ::= { statement }
 
 statement       ::= variable_declaration
+                 | variable_assignment
+                 | if_statement
+                 | while_statement
+                 | for_statement
+                 | function_definition
+                 | return_statement
+                 | expression_statement
 
 variable_declaration ::= "let" identifier "be" expression
+variable_assignment  ::= "set" identifier "to" expression
+if_statement         ::= "if" expression "then" { statement } [ "else" { statement } ] "end"
+while_statement      ::= "while" expression "then" { statement } "end"
+for_statement        ::= "for" identifier "from" expression "to" expression [ "step" expression ] "then" { statement } "end"
+function_definition  ::= "define function" identifier "with" [ identifier { "," identifier } ] "as" { statement } "end"
+function_call        ::= identifier '(' [ expression { ',' expression } ] ')'
+return_statement     ::= "return" '(' expression ')' | "return" '()'
+expression_statement ::= expression
 
 expression      ::= unary_expression [ binary_operator expression ]
-
 unary_expression ::= unary_operator unary_expression
                   | primary_expression
-
 primary_expression ::= grouped_expression
                     | literal_expression
+                    | function_call
 
-grouped_expression ::= "(" expression ")"
-
-literal_expression ::= number
-                    | identifier
-
-unary_operator   ::= "-" | "not"
-binary_operator  ::= "+" | "-" | "*" | "/" | "and" | "or" | "==" | "!=" | "<" | ">" | "<=" | ">="
+grouped_expression ::= '(' expression ')'
+literal_expression ::= number | identifier
+unary_operator   ::= '-' | 'not'
+binary_operator  ::= '+' | '-' | '*' | '/' | 'and' | 'or' | '==' | '!=' | '<' | '>' | '<=' | '>='
 identifier       ::= [a-zA-Z_][a-zA-Z0-9_]*
 number           ::= [0-9]+(\.[0-9]+)?
 ```
@@ -123,6 +187,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 - **Operator precedence** is handled so that arithmetic, logical, and comparison operators work as expected.
 - **Unary operators** can be chained and can operate on grouped expressions.
 - **Grouped expressions** (parentheses) can override precedence.
+- **Functions** support definition, calls, arguments, and return values (with `return (expr)` or `return`).
 
 ---
 
@@ -146,7 +211,7 @@ number           ::= [0-9]+(\.[0-9]+)?
 3. **Functions**
   - [x] Support function definitions
   - [x] Enable function calls with arguments
-  - [ ] Implement return values
+  - [x] Implement return values
 
 4. **Standard Input/Output**
   - [ ] Add basic `print` and `input` functions

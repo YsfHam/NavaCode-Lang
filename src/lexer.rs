@@ -28,6 +28,7 @@ pub enum TokenKind {
     FunctionKeyword,
     WithKeyword,
     AsKeyword,
+    ReturnKeyword,
 
     // Operators
     Plus,
@@ -98,6 +99,7 @@ impl fmt::Display for TokenKind {
             TokenKind::WithKeyword => "with",
             TokenKind::AsKeyword => "as",
             TokenKind::Comma => ",",
+            TokenKind::ReturnKeyword => "return",
         };
         write!(f, "{s}")
     }
@@ -375,6 +377,7 @@ impl<'a> Lexer<'a> {
             "function" => TokenKind::FunctionKeyword,
             "with" => TokenKind::WithKeyword,
             "as" => TokenKind::AsKeyword,
+            "return" => TokenKind::ReturnKeyword,
             _ => TokenKind::Identifier,
         }
     }

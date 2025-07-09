@@ -1,9 +1,11 @@
-use crate::{ast::{Ast, AstExplorer}, diagnostic::{Diagnostic, Diagnostics}, symbols_table::{FunctionSymbol, ScopeId, SymbolsTable, VariableSymbol}};
+use crate::{ast::{Ast, AstExplorer}, diagnostic::{Diagnostic, Diagnostics}, symbols_table::{FunctionSymbol, ScopeId, SymbolsTable, VariableSymbol}, BlockType};
 
 pub struct Resolver {
     symbols_table: SymbolsTable,
     current_scope_id: ScopeId,
     diagnostics: Diagnostics,
+    block_type_stack: Vec<BlockType>,
+    current_block_type: Option<BlockType>,
 }
 
 impl Resolver {
@@ -12,6 +14,8 @@ impl Resolver {
             symbols_table: SymbolsTable::new(),
             current_scope_id: ScopeId(0),
             diagnostics: Diagnostics::new(),
+            block_type_stack: Vec::new(),
+            current_block_type: None,
         }
     }
 
@@ -23,6 +27,17 @@ impl Resolver {
         } else {
             Ok(self.symbols_table)
         }
+    }
+
+    fn enter_scope(&mut self) {
+        self.current_scope_id = self.symbols_table.enter_scope(self.current_scope_id);
+    }
+    fn exit_scope(&mut self) {
+        self.current_scope_id = self.symbols_table.exit_scope(self.current_scope_id);
+    }
+
+    fn is_inside_block(&self, block_type: BlockType) -> bool {
+        self.block_type_stack.iter().any(|&bt| bt == block_type)
     }
 }
 
@@ -50,39 +65,49 @@ impl AstExplorer for Resolver {
     }
 
     fn visit_if_statement(&mut self, condition: &crate::ast::expression::Expression, then_branch: &crate::ast::statement::Statement, else_branch: Option<&crate::ast::statement::Statement>) {
+        self.current_block_type = Some(BlockType::IfBlock);
         self.visit_expression(condition);
         self.visit_statement(then_branch);
         if let Some(else_branch) = else_branch {
+            self.current_block_type = Some(BlockType::ElseBlock);
             self.visit_statement(else_branch);
         }
     }
 
     fn visit_while_statement(&mut self, condition: &crate::ast::expression::Expression, body: &crate::ast::statement::Statement) {
+        self.current_block_type = Some(BlockType::WhileBlock);
         self.visit_expression(condition);
         self.visit_statement(body);
+
     }
 
-    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: Option<&crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: &Option<crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+        self.current_block_type = Some(BlockType::ForBlock);
+
         self.visit_expression(start);
         self.visit_expression(end);
         if let Some(step_expr) = step {
             self.visit_expression(step_expr);
         }
-        self.current_scope_id = self.symbols_table.enter_scope(self.current_scope_id);
+        self.enter_scope();
         self.symbols_table.define_variable(VariableSymbol {
             identifier: variable.value.clone(),
         }, self.current_scope_id);
         self.visit_statement(body);
-        self.current_scope_id = self.symbols_table.exit_scope(self.current_scope_id);
+        self.exit_scope();
     }
 
     fn block_statement_on_enter(&mut self) {
-        self.current_scope_id = self.symbols_table.enter_scope(self.current_scope_id);
+        self.enter_scope();
+        if let Some(block_type) = self.current_block_type.take() {
+            self.block_type_stack.push(block_type);
+        }
     }
     
 
     fn block_statement_on_exit(&mut self) {
-        self.current_scope_id = self.symbols_table.exit_scope(self.current_scope_id);
+        self.exit_scope();
+        self.block_type_stack.pop();
     }
 
     fn visit_number_expression(&mut self, _value: i64) {
@@ -115,8 +140,9 @@ impl AstExplorer for Resolver {
             parameters: arguments.iter().map(|arg| arg.value.clone()).collect(),
         });
 
-        self.current_scope_id = self.symbols_table.enter_scope(self.current_scope_id);
-        
+        self.enter_scope();
+        self.current_block_type = Some(BlockType::FunctionBlock);
+
         arguments
             .iter()
             .for_each(|argument| 
@@ -125,7 +151,7 @@ impl AstExplorer for Resolver {
         }, self.current_scope_id));
         
         self.visit_statement(body);
-        self.current_scope_id = self.symbols_table.exit_scope(self.current_scope_id);
+        self.exit_scope();
     }
     
     fn visit_function_call(&mut self, function_name: &crate::lexer::Token, arguments: &[crate::ast::expression::Expression]) {
@@ -139,6 +165,16 @@ impl AstExplorer for Resolver {
 
         for argument in arguments {
             self.visit_expression(argument);
+        }
+    }
+
+    fn visit_return_statement(&mut self, position: &crate::lexer::TokenPosition, expression: &Option<crate::ast::expression::Expression>) {
+        if self.is_inside_block(BlockType::FunctionBlock) {
+            if let Some(expr) = expression {
+                self.visit_expression(expr);
+            }
+        } else {
+            self.diagnostics.report(Diagnostic::return_outside_function(position.clone()));
         }
     }
 }

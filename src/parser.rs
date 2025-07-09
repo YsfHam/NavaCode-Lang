@@ -1,16 +1,6 @@
 use std::iter::Peekable;
 
-use crate::{ast::{expression::{BinaryOperator, Expression, FunctionCallData, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}};
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BlockType {
-    IfBlock,
-    WhileBlock,
-    ForBlock,
-    ElseBlock,
-    FunctionBlock,
-}
+use crate::{ast::{expression::{BinaryOperator, Expression, FunctionCallData, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}, BlockType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ErrorRecoveryState {
@@ -168,6 +158,8 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
             TokenKind::Identifier =>
                 Ok(Some(self.parse_function_call().map(|data| Statement::FunctionCall(data))?)),
+
+            TokenKind::ReturnKeyword => Ok(Some(self.parse_return_statement()?)),
             
             // Reporting errors
             TokenKind::ElseKeyword 
@@ -404,6 +396,21 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(arguments)
     }
 
+    fn parse_return_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let return_pos = self.expect(&[TokenKind::ReturnKeyword])?.position;
+
+        let expression = if self.peek().kind == TokenKind::LeftParen {
+            Some(self.parse_grouped_expression()?)
+        } else {
+            None
+        };
+
+        Ok(Statement::ReturnStatement {
+            position: return_pos,
+            expression,
+        })
+    }
+
     fn parse_expression(&mut self) -> Result<Expression, Diagnostic> {
         self.parse_expression_with_precedence(0)
     }
@@ -498,7 +505,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             }
             _ => {
                 Err(Diagnostic::unexpected_token(
-                    vec![TokenKind::Number, TokenKind::Identifier],
+                    vec![TokenKind::Number, TokenKind::Identifier, TokenKind::TrueKeyword, TokenKind::FalseKeyword],
                     next_token.clone(),
                 ))
             }

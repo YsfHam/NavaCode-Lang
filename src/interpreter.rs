@@ -101,6 +101,7 @@ pub struct Interpreter {
     scopes: Vec<RuntimeScope>,
     dispatcher: RuntimeFunctionsDispatcher,
     functions: HashMap<String, FunctionInfo>,
+    stop_execution: bool,
 }
 
 impl Interpreter {
@@ -110,6 +111,7 @@ impl Interpreter {
             scopes: vec![RuntimeScope::new()],
             dispatcher: RuntimeFunctionsDispatcher::new(),
             functions: HashMap::new(),
+            stop_execution: false,
         }
     }
 
@@ -153,15 +155,23 @@ impl Interpreter {
 
     fn call_function(&mut self, function_info: FunctionInfo, arguments: &[crate::ast::expression::Expression]) {
         
-        self.push_scope();
-
-        for (param, arg) in function_info.parameters.iter().zip(arguments) {
+        
+        let parameters = function_info.parameters
+        .iter()
+        .zip(arguments)
+        .map(|(param, arg)| {
             self.visit_expression(arg);
             let value = self.get_accumulator_value();
+            (param, value)
+        }).collect::<Vec<_>>();
+        
+        self.push_scope();
+        for (param, value) in parameters {
             self.register_variable(param.clone(), value);
         }
 
         self.visit_statement(&function_info.body);
+        self.stop_execution = false;
 
         self.pop_scope();
     }
@@ -223,6 +233,13 @@ impl Interpreter {
 }
 
 impl AstExplorer for Interpreter {
+
+    fn visit_statement(&mut self, statement: &Statement) {
+        if !self.stop_execution {
+            self.visit_statement_impl(statement);
+        }
+    }
+
     fn visit_variable_declaration(&mut self, name: &crate::lexer::Token, value: &crate::ast::expression::Expression) {
         self.visit_expression(value);
         let expr_value = self.get_accumulator_value();
@@ -328,7 +345,7 @@ impl AstExplorer for Interpreter {
         }
     }
     
-    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: Option<&crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
+    fn visit_for_statement(&mut self, variable: &crate::lexer::Token, start: &crate::ast::expression::Expression, end: &crate::ast::expression::Expression, step: &Option<crate::ast::expression::Expression>, body: &crate::ast::statement::Statement) {
         self.visit_expression(start);
         let start_value = self.get_accumulator_value();
 
@@ -379,5 +396,13 @@ impl AstExplorer for Interpreter {
             let function_info = function_info.clone();
             self.call_function(function_info, arguments);
         }
+    }
+    
+    fn visit_return_statement(&mut self, _position: &crate::lexer::TokenPosition, expression: &Option<crate::ast::expression::Expression>) {
+        if let Some(expr) = expression {
+            self.visit_expression(expr);
+        }
+
+        self.stop_execution = true;
     }
 }

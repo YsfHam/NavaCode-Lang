@@ -1,4 +1,4 @@
-use crate::{ast::expression::FunctionCallData, lexer::Token};
+use crate::{ast::expression::FunctionCallData, lexer::{Token, TokenPosition}};
 
 use super::expression::Expression;
 
@@ -39,6 +39,11 @@ pub enum Statement {
     },
 
     FunctionCall(FunctionCallData),
+
+    ReturnStatement {
+        position: TokenPosition,
+        expression: Option<Expression>,
+    },
 }
 
 #[derive(Debug, Clone)]

@@ -30,30 +30,33 @@ enum DiagnosticError {
     UndefinedFunction {
         function_name: String,
     },
+
+    ReturnOutsideFunction,
 }
 
 impl fmt::Display for DiagnosticError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DiagnosticError::UnexpectedToken { expected, found } => {
-                                        let expected_str = 
-                                            expected.iter()
-                                            .map(|k| format!("{}", k))
-                                            .collect::<Vec<_>>()
-                                            .join(", ");
-                                        write!(f, "Unexpected token '{}'. expected one of [{}]", found, expected_str)
-                                    }
+                                                let expected_str = 
+                                                    expected.iter()
+                                                    .map(|k| format!("{}", k))
+                                                    .collect::<Vec<_>>()
+                                                    .join(", ");
+                                                write!(f, "Unexpected token '{}'. expected one of [{}]", found, expected_str)
+                                            }
             DiagnosticError::UnexpectedElseAfterEnd => {
-                                        write!(f, "Unexpected 'else' after 'end'")
-                                    }
+                                                write!(f, "Unexpected 'else' after 'end'")
+                                            }
             DiagnosticError::UnexpectedEndToken => {
-                                        write!(f, "'end' present without a matching block")
-                                    }
+                                                write!(f, "'end' present without a matching block")
+                                            }
             DiagnosticError::UnexpectedElseToken => write!(f, "'else' present without a matching 'if'"),
             DiagnosticError::VariableRedefinition { identifier } => write!(f, "Variable '{}' is already defined in the current scope", identifier),
             DiagnosticError::UndefinedVariable { identifier } => write!(f, "Variable '{}' is not defined", identifier),
             DiagnosticError::FunctionArgumentsMismatch { function_name, expected, found } => write!(f, "Function '{}' called with incorrect number of arguments: expected {}, found {}", function_name, expected, found),
             DiagnosticError::UndefinedFunction { function_name } => write!(f, "Function '{}' is not defined", function_name),
+            DiagnosticError::ReturnOutsideFunction => write!(f, "Return statement outside of function"),
         }
     }
 }
@@ -132,6 +135,13 @@ impl Diagnostic {
                 function_name: function_name.value,
             }),
             position: function_name.position,
+        }
+    }
+
+    pub fn return_outside_function(position: TokenPosition) -> Self {
+        Self {
+            diagnostic_type: DiagnosticType::Error(DiagnosticError::ReturnOutsideFunction),
+            position,
         }
     }
 }
