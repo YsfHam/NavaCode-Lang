@@ -153,7 +153,7 @@ impl AstExplorer for AstDebugPrinter {
         self.indent_level -= 1;
     }
 
-    fn visit_return_statement(&mut self, _position: &crate::lexer::TokenPosition, expression: &Option<crate::ast::expression::Expression>) {
+    fn visit_return_statement(&mut self, _span: crate::lexer::TextSpan, expression: &Option<crate::ast::expression::Expression>) {
         println!("{}Return Statement:", "  ".repeat(self.indent_level));
         self.indent_level += 1;
         

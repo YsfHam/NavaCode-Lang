@@ -1,7 +1,7 @@
 pub mod statement;
 pub mod expression;
 
-use crate::lexer::{Token, TokenPosition};
+use crate::{ast::expression::Literal, lexer::{TextSpan, Token}};
 use statement::Statement;
 use expression::Expression;
 
@@ -62,7 +62,8 @@ pub trait AstExplorer {
                                         self.visit_function_definition(name, arguments, body),
             Statement::FunctionCall(function_call_data) =>
                                         self.visit_function_call(&function_call_data.function_name, &function_call_data.arguments),
-            Statement::ReturnStatement { position, expression } => self.visit_return_statement(position,expression),
+            Statement::ReturnStatement { span, expression } => 
+                    self.visit_return_statement(span.clone(), expression),
         }
     }
 
@@ -73,7 +74,7 @@ pub trait AstExplorer {
     fn visit_for_statement(&mut self, variable: &Token, start: &Expression, end: &Expression, step: &Option<Expression>, body: &Statement);
     fn visit_function_definition(&mut self, name: &Token, arguments: &[Token], body: &Statement);
     fn visit_function_call(&mut self, function_name: &Token, arguments: &[Expression]);
-    fn visit_return_statement(&mut self, position: &TokenPosition, expression: &Option<Expression>);
+    fn visit_return_statement(&mut self, span: TextSpan, expression: &Option<Expression>);
 
 
     fn block_statement_on_enter(&mut self);
@@ -82,8 +83,8 @@ pub trait AstExplorer {
 
     fn visit_expression(&mut self, expression: &Expression) {
         match expression {
-            Expression::Number(value) => self.visit_number_expression(*value),
-            Expression::Boolean(value) => self.visit_boolean_expression(*value),
+            Expression::Literal{value: Literal::Number(value), ..} => self.visit_number_expression(*value),
+            Expression::Literal{value: Literal::Boolean(value), ..} => self.visit_boolean_expression(*value),
             Expression::Variable(name) => self.visit_variable_expression(name),
             Expression::BinaryOperation { left, operator, right } => 
                                     self.visit_binary_operation(left, operator, right),

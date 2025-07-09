@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::types::Type;
+
 pub struct SymbolsTable {
     scopes: Vec<Scope>,
     functions: HashMap<String, FunctionSymbol>,
@@ -59,6 +61,7 @@ impl SymbolsTable {
 
 pub struct VariableSymbol {
     pub identifier: String,
+    pub sym_type: Type,
 }
 
 pub struct FunctionSymbol {

@@ -1,3 +1,5 @@
+use std::{fs, io, path::Path};
+
 use crate::{ast::Ast, diagnostic::Diagnostics, lexer::Lexer, parser::Parser, resolver::Resolver, symbols_table::SymbolsTable};
 
 pub struct CompilationUnit {
@@ -17,6 +19,10 @@ impl SourceCode {
     pub fn as_str(&self) -> &str {
         &self.code
     }
+
+    pub fn from_file(path: impl AsRef<Path>) -> io::Result<Self> {
+        Ok(Self::from_string(fs::read_to_string(path)?))
+    }
 }
 
 pub struct Compiler {
@@ -28,7 +34,7 @@ impl Compiler {
         Compiler { _private: () }
     }
 
-    pub fn compile(&self, source_code: SourceCode) -> Result<CompilationUnit, Diagnostics> {
+    pub fn compile(&self, source_code: &SourceCode) -> Result<CompilationUnit, Diagnostics> {
         let lexer = Lexer::new(source_code.as_str());
 
         let parser = Parser::new(lexer);

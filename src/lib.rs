@@ -7,6 +7,7 @@ pub mod compiler;
 pub mod interpreter;
 pub mod symbols_table;
 pub mod resolver;
+pub mod types;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

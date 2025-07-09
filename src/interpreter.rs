@@ -398,7 +398,7 @@ impl AstExplorer for Interpreter {
         }
     }
     
-    fn visit_return_statement(&mut self, _position: &crate::lexer::TokenPosition, expression: &Option<crate::ast::expression::Expression>) {
+    fn visit_return_statement(&mut self, _span: crate::lexer::TextSpan, expression: &Option<crate::ast::expression::Expression>) {
         if let Some(expr) = expression {
             self.visit_expression(expr);
         }

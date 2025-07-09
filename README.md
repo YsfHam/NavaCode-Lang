@@ -116,7 +116,7 @@ end
 ```nava
 let n be 5
 let fact be 1
-while n > 1 then
+while n > 1 do
     set fact to fact * n
     set n to n - 1
 end
@@ -125,11 +125,11 @@ end
 ### For Loops
 ```nava
 let sum be 0
-for i from 1 to 5 then
+for i from 1 to 5 do
     set sum to sum + i
 end
 
-for i from 10 to 1 step -2 then
+for i from 10 to 1 step -2 do
     set sum to sum + i
 end
 ```
@@ -196,6 +196,11 @@ number           ::= [0-9]+(\.[0-9]+)?
 ### MVP Features (Current Progress)
 - [x] Variable declarations
 - [x] Variable assignment
+
+#### Type Checking (Planned/Work in Progress)
+- [x] Define a type system (start with `int` and `bool`)
+- [x] Implement type inference for literals and variables
+- [ ] Implement type inference for function arguments and calls
 
 1. **Arithmetic and Logical Expressions**
   - [x] Implement integer and float arithmetic (`+`, `-`, `*`, `/`)

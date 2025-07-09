@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use crate::{ast::{expression::{BinaryOperator, Expression, FunctionCallData, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}, BlockType};
+use crate::{ast::{expression::{BinaryOperator, Expression, FunctionCallData, Literal, UnaryOperator}, statement::{IfThenBranch, Statement}, Ast}, diagnostic::{Diagnostic, Diagnostics}, lexer::{Token, TokenKind}, BlockType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ErrorRecoveryState {
@@ -171,14 +171,14 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             TokenKind::ElseKeyword if self.consumed_tokens.last() == Some(&TokenKind::EndKeyword) => {
                self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::ElseBlock));
                 Err(
-                    Diagnostic::unexpected_else_after_end(self.advance().position)
+                    Diagnostic::unexpected_else_after_end(self.advance().span())
                 )
             }
 
             TokenKind::ElseKeyword => {
                 self.push_recovery_state(ErrorRecoveryState::RecoverFromBadBlock(BlockType::ElseBlock));
                 Err(
-                    Diagnostic::unexpected_else_token(self.advance().position)
+                    Diagnostic::unexpected_else_token(self.advance().span())
                 )
             }
 
@@ -191,7 +191,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 self.parse_statement()
             }
             TokenKind::EndKeyword => Err(
-                Diagnostic::unexpected_end_token(self.advance().position)
+                Diagnostic::unexpected_end_token(self.advance().span())
             ),
             _ => {
                 return Err(Diagnostic::unexpected_token(
@@ -397,7 +397,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, Diagnostic> {
-        let return_pos = self.expect(&[TokenKind::ReturnKeyword])?.position;
+        let span = self.expect(&[TokenKind::ReturnKeyword])?.span();
 
         let expression = if self.peek().kind == TokenKind::LeftParen {
             Some(self.parse_grouped_expression()?)
@@ -406,7 +406,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         };
 
         Ok(Statement::ReturnStatement {
-            position: return_pos,
+            span,
             expression,
         })
     }
@@ -480,15 +480,15 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         match next_token.kind {
             TokenKind::Number => {
                 let number_token: Token = self.advance();
-                Ok(Expression::Number(number_token.value.parse().unwrap()))
+                Ok(Expression::Literal { value: Literal::Number(number_token.value.parse().unwrap()), span: number_token.span() })
             }
             TokenKind::TrueKeyword => {
-                self.advance(); // consume the 'true' keyword
-                Ok(Expression::Boolean(true))
+                let token = self.advance(); // consume the 'true' keyword
+                Ok(Expression::Literal { value: Literal::Boolean(true), span: token.span() })
             }
             TokenKind::FalseKeyword => {
-                self.advance(); // consume the 'false' keyword
-                Ok(Expression::Boolean(false))
+                let token = self.advance(); // consume the 'false' keyword
+                Ok(Expression::Literal { value: Literal::Boolean(false), span: token.span() })
             }
             TokenKind::Identifier => {
                 let identifier_token = self.advance();

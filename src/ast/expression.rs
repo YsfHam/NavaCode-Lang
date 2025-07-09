@@ -1,9 +1,19 @@
+use core::fmt;
+
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq, Clone)] // Derive Debug and PartialEq for Expression to allow test assertions
-pub enum Expression {
+#[derive(Debug, PartialEq, Clone)]
+pub enum Literal {
     Number(i64),
     Boolean(bool),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expression {
+    Literal {
+        value: Literal,
+        span: crate::lexer::TextSpan,
+    },
 
     Variable(Token),
 
@@ -21,6 +31,19 @@ pub enum Expression {
     Grouped(Box<Expression>),
 
     FunctionCall(FunctionCallData),
+}
+
+impl Expression {
+    pub fn span(&self) -> crate::lexer::TextSpan {
+        match self {
+            Expression::Literal { span, .. } => span.clone(),
+            Expression::Variable(token) => token.span(),
+            Expression::BinaryOperation { left, right, .. } => left.span().union(&right.span()),
+            Expression::UnaryOperation { operand, .. } => operand.span(),
+            Expression::Grouped(expression) => expression.span(),
+            Expression::FunctionCall(data) => data.function_name.span(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -48,6 +71,27 @@ pub enum BinaryOperator {
     /// Logical Operators
     And,
     Or,
+}
+
+impl fmt::Display for BinaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let symbol = match self {
+            BinaryOperator::Add => "+",
+            BinaryOperator::Subtract => "-",
+            BinaryOperator::Multiply => "*",
+            BinaryOperator::Divide => "/",
+            BinaryOperator::Modulus => "%",
+            BinaryOperator::Equal => "==",
+            BinaryOperator::NotEqual => "!=",
+            BinaryOperator::LessThan => "<",
+            BinaryOperator::GreaterThan => ">",
+            BinaryOperator::LessThanOrEqual => "<=",
+            BinaryOperator::GreaterThanOrEqual => ">=",
+            BinaryOperator::And => "and",
+            BinaryOperator::Or => "or",
+        };
+        write!(f, "{}", symbol)
+    }
 }
 
 impl BinaryOperator {
@@ -114,5 +158,15 @@ impl TryFrom<crate::lexer::TokenKind> for UnaryOperator {
             crate::lexer::TokenKind::NotKeyword | crate::lexer::TokenKind::Bang => Ok(UnaryOperator::Not),
             _ => Err(()),
         }
+    }
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let symbol = match self {
+            UnaryOperator::Negate => "-",
+            UnaryOperator::Not => "not/!",
+        };
+        write!(f, "{}", symbol)
     }
 }

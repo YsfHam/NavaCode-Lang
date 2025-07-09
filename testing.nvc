@@ -1,0 +1,5 @@
+let x be 0
+let y be true
+
+let z be x + y
+let alpha be !x

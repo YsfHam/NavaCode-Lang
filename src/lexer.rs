@@ -112,10 +112,37 @@ pub struct TokenPosition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextSpan {
+    pub start: TokenPosition,
+    pub end: TokenPosition,
+}
+
+impl TextSpan {
+    pub fn union(&self, other: &Self) -> Self {
+        TextSpan {
+            start: TokenPosition { line: self.start.line.min(other.start.line), column: self.start.column.min(other.start.column) },
+            end: TokenPosition { line: self.end.line.max(other.end.line), column: self.end.column.max(other.end.column) },
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: String,
     pub position: TokenPosition,
+}
+
+impl Token {
+    pub fn span(&self) -> TextSpan {
+        TextSpan {
+            start: self.position.clone(),
+            end: TokenPosition {
+                line: self.position.line,
+                column: self.position.column + self.value.len(),
+            },
+        }
+    }
 }
 
 
